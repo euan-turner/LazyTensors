@@ -5,7 +5,7 @@ namespace tensor {
 
 Tensor::Tensor(std::vector<size_t> dims, std::unique_ptr<TensorImpl> impl) {}
 
-Tensor::Tensor(std::vector<size_t> dims, Device device = Device::CPU) : _device(device) {
+Tensor::Tensor(std::vector<size_t> dims, Device device) : _device(device) {
     _shape = createShape(dims);
     _impl = TensorImpl::create_impl(_device, *_shape);
 }
@@ -55,24 +55,6 @@ size_t Tensor::rows() const {}
 size_t Tensor::cols() const {}
 
 size_t Tensor::length() const {}
-
-Tensor Tensor::add(const Tensor& b) const {}
-
-Tensor Tensor::sub(const Tensor& b) const {}
-
-Tensor Tensor::mul(const Tensor& b) const {}
-
-Tensor Tensor::div(const Tensor& b) const {}
-
-Tensor Tensor::add(float s) const {}
-
-Tensor Tensor::mul(float s) const {}
-
-Tensor Tensor::exp() const {}
-
-Tensor Tensor::log() const {}
-
-Tensor Tensor::clamp(float lo, float hi) const {}
 
 Tensor Tensor::matmul(const Tensor& b) const {}
 

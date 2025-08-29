@@ -29,11 +29,7 @@ struct ClampParams { float lo, hi; };
 struct ScalParams { float x; };
 
 // Variant type for op parameters
-using OpParams = std::variant<
-    std::monostate,     // for ops with no params
-    ClampParams,
-    ScalParams,
->;
+using OpParams = std::variant<std::monostate, ClampParams, ScalParams>;
 
 struct Op {
     OpType type;
