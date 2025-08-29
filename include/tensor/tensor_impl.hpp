@@ -51,7 +51,7 @@ class TensorImpl {
 
     // --- Device info ---
     virtual Device device() const = 0;
-    static std::unique_ptr<TensorImpl> create_impl(Device device, TensorShape& shape);
+    static std::unique_ptr<TensorImpl> create_impl(Device device, std::shared_ptr<TensorShape> shape);
 
     // --- Core cloning / transfers ---
     virtual std::unique_ptr<TensorImpl> clone() const = 0;

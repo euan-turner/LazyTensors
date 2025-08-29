@@ -25,7 +25,7 @@ size_t TensorImpl::flatIndex(const std::vector<size_t>& indices) const {
     return offset;
 }
 
-std::unique_ptr<TensorImpl> TensorImpl::create_impl(Device device, TensorShape& shape) {
+std::unique_ptr<TensorImpl> TensorImpl::create_impl(Device device, std::shared_ptr<TensorShape> shape) {
       switch (device) {
         case Device::CPU:
           return std::make_unique<CPUImpl>(shape);

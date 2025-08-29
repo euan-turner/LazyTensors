@@ -204,20 +204,22 @@ class Tensor {
         // ---- out-of-place ops (thin wrappers over clone()+in-place) ----
 
         // Element-wise ops, implicitly broadcasts
-        Tensor add(const Tensor& b) const      { Tensor out = clone(); out.add_(b); return out; }
-        Tensor sub(const Tensor& b) const      { Tensor out = clone(); out.sub_(b); return out; }
-        Tensor mul(const Tensor& b) const      { Tensor out = clone(); out.mul_(b); return out; }
-        Tensor div(const Tensor& b) const      { Tensor out = clone(); out.div_(b); return out; }
+        Tensor add(const Tensor& other) const      { Tensor out = clone(); out.add_(other); return out; }
+        Tensor sub(const Tensor& other) const      { Tensor out = clone(); out.sub_(other); return out; }
+        Tensor mul(const Tensor& other) const      { Tensor out = clone(); out.mul_(other); return out; }
+        Tensor div(const Tensor& other) const      { Tensor out = clone(); out.div_(other); return out; }
 
         // Scalar ops
         Tensor add(float s) const              { Tensor out = clone(); out.add_(s); return out; }
         Tensor mul(float s) const              { Tensor out = clone(); out.mul_(s); return out; }
+        Tensor sub(float s) const              { Tensor out = clone(); out.sub_(s); return out; }
+        Tensor div(float s) const              { Tensor out = clone(); out.div_(s); return out; }
         Tensor exp() const                     { Tensor out = clone(); out.exp_(); return out; }
         Tensor log() const                     { Tensor out = clone(); out.log_(); return out; }
         Tensor clamp(float lo, float hi) const { Tensor out = clone(); out.clamp_(lo,hi); return out; }
 
         // Matrix multiplication, implicitly broadcasts, only out-of-place
-        Tensor matmul(const Tensor& b) const;
+        Tensor matmul(const Tensor& other) const;
 
         // Reductions, returns new Tensor
         Tensor sum(int64_t dim = -1, bool keepdim=false) const;
@@ -231,14 +233,16 @@ class Tensor {
         // return *this
 
         // Element-wise ops, implicitly broadcasts
-        Tensor& add_(const Tensor& b);
-        Tensor& sub_(const Tensor& b);
-        Tensor& mul_(const Tensor& b);
-        Tensor& div_(const Tensor& b);
+        Tensor& add_(const Tensor& other);
+        Tensor& sub_(const Tensor& other);
+        Tensor& mul_(const Tensor& other);
+        Tensor& div_(const Tensor& other);
 
         // Scalar ops
         Tensor& add_(float s);
         Tensor& mul_(float s);
+        Tensor& sub_(float s);
+        Tensor& div_(float s);
 
         Tensor& exp_();
         Tensor& log_();
