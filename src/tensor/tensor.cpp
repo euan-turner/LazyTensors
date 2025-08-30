@@ -4,14 +4,19 @@
 
 namespace tensor {
 
-Tensor::Tensor(std::vector<size_t> dims, std::unique_ptr<TensorImpl> impl) {}
+Tensor::Tensor(std::unique_ptr<TensorImpl> impl) {
+  _shape = impl->shape();
+  _impl = std::move(impl);
+}
 
 Tensor::Tensor(std::vector<size_t> dims, Device device) : _device(device) {
     _shape = createShape(dims);
     _impl = TensorImpl::create_impl(_device, _shape);
 }
 
-Tensor Tensor::to(Device device) {}
+Tensor Tensor::to(Device device) {
+  throw std::runtime_error("Not implemented yet");
+}
 
 Tensor::Tensor(const Tensor& other) {}
 
@@ -21,47 +26,134 @@ Tensor::Tensor(Tensor&& other) noexcept {}
 
 Tensor& Tensor::operator=(Tensor&& other) noexcept {}
 
-Tensor Tensor::clone() const {}
+Tensor Tensor::clone() const {
+  std::unique_ptr<TensorImpl> new_impl = _impl->clone();
+  return Tensor(std::move(new_impl));
+}
 
-float Tensor::at(std::vector<size_t> indices) const {}
+float Tensor::at(std::vector<size_t> indices) const {
+  if (indices.size() != _shape->dims.size())
+      throw std::runtime_error("Incorrect number of indices");
+  for (size_t i = 0; i < indices.size(); ++i) {
+      if (indices[i] >= _shape->dims[i]) throw std::runtime_error("Index out of bounds");
+  }
+  return _impl->at(indices);
+}
 
-void Tensor::set(std::vector<size_t> indices, float v) {}
+void Tensor::set(std::vector<size_t> indices, float v) {
+  if (indices.size() != _shape->dims.size())
+      throw std::runtime_error("Incorrect number of indices");
+  for (size_t i = 0; i < indices.size(); ++i) {
+      if (indices[i] >= _shape->dims[i]) throw std::runtime_error("Index out of bounds");
+  }
+  _impl->set(indices, v);
+}
 
-float Tensor::operator()(std::vector<size_t> indices) const {}
+float Tensor::operator()(std::vector<size_t> indices) const { return at(indices); }
 
-float Tensor::operator()(size_t row, size_t col) const {}
+float Tensor::operator()(size_t row, size_t col) const { 
+  if (!isMatrix()) {
+    throw std::runtime_error("Not a matrix");
+  }
+  return at({row, col}); 
+}
 
-void Tensor::set(size_t row, size_t col, float v) {}
+void Tensor::set(size_t row, size_t col, float v) { 
+  if (!isMatrix()) {
+    throw std::runtime_error("Not a matrix");
+  }
+  set({row, col}, v); 
+}
 
-float Tensor::operator()(size_t idx) const {}
+float Tensor::operator()(size_t idx) const { 
+  if (!isVector()) {
+    throw std::runtime_error("Not a vector");
+  }
+  return at(std::vector<size_t>{idx}); 
+}
 
-void Tensor::set(size_t idx, float v) {}
+void Tensor::set(size_t idx, float v) { 
+  if (!isVector()) {
+    throw std::runtime_error("Not a vector");
+  }
+  set(std::vector<size_t>{idx}, v); 
+}
 
-size_t Tensor::dim(size_t axis) const {}
+size_t Tensor::dim(size_t axis) const {
+  if (axis >= _shape->dims.size()) {
+    throw std::runtime_error("Axis out of bounds");
+  }
+  return _shape->dims[axis];
+}
 
-std::vector<size_t> Tensor::dims() const {}
+std::vector<size_t> Tensor::dims() const {
+  return _shape->dims;
+}
 
-size_t Tensor::stride(size_t axis) const {}
+size_t Tensor::stride(size_t axis) const {
+  if (axis >= _shape->strides.size()) {
+    throw std::runtime_error("Axis out of bounds");
+  }
+  return _shape->strides[axis];
+}
 
-std::vector<size_t> Tensor::strides() const {}
+std::vector<size_t> Tensor::strides() const {
+  return _shape->strides;
+}
 
-size_t Tensor::numel() const {}
+size_t Tensor::numel() const {
+  return _shape->numel;
+}
 
-bool Tensor::isMatrix() const {}
+bool Tensor::isMatrix() const {
+  return _shape->dims.size() == 2;
+}
 
-bool Tensor::isScalar() const {}
+bool Tensor::isVector() const {
+  return _shape->dims.size() == 1;
+}
 
-size_t Tensor::rows() const {}
+// scalars cannot be multi-dimensional
+bool Tensor::isScalar() const {
+  return isVector() && numel() == 1;
+}
 
-size_t Tensor::cols() const {}
+size_t Tensor::rows() const {
+  if (!isMatrix()) {
+    throw std::runtime_error("Not a matrix");
+  }
+  return dim(0);
+}
 
-size_t Tensor::length() const {}
+size_t Tensor::cols() const {
+  if (!isMatrix()) {
+    throw std::runtime_error("Not a matrix");
+  }
+  return dim(1);
+}
 
-Tensor Tensor::matmul(const Tensor& other) const {}
+size_t Tensor::length() const {
+  if (!isVector()) {
+    throw std::runtime_error("Not a vector");
+  }
+  return dim(0);
+}
 
-Tensor Tensor::sum(size_t dim, bool keepdim) const {}
+Tensor Tensor::matmul(const Tensor& other) const {
+  // TODO: Validation checks on shapes
+  std::unique_ptr<TensorImpl> res_impl = _impl->matmul(*other._impl);
+  return Tensor(std::move(res_impl));
+}
 
-Tensor Tensor::mean(size_t dim, bool keepdim) const {}
+Tensor Tensor::sum(int axis, bool keepdim) const {
+  std::unique_ptr<TensorImpl> res_impl = _impl->sum(axis, keepdim);
+  return Tensor(std::move(res_impl));
+}
+
+Tensor Tensor::mean(int axis, bool keepdim) const {
+  std::unique_ptr<TensorImpl> res_impl = _impl->mean(axis, keepdim);
+  return Tensor(std::move(res_impl));
+}
 
 Tensor Tensor::broadcast_to(const TensorShape& target_shape) const {}
 
@@ -129,6 +221,8 @@ Tensor& Tensor::log_() {
 
 Tensor& Tensor::clamp_(float lo, float hi) {
   Op op { OpType::CLAMP, ClampParams{lo, hi}, nullptr };
+  _impl->apply(op);
+  return *this;
 }
 
 Tensor& Tensor::transpose_(std::vector<size_t> axes) {}

@@ -17,6 +17,7 @@ std::shared_ptr<TensorShape> createShape(const std::vector<size_t>& dims) {
         prod *= dims[i];
     }
 
-    return std::make_shared<TensorShape>(total_size, std::vector<size_t>(dims), std::move(strides));
+    auto res = std::make_shared<TensorShape>(total_size, std::vector<size_t>(dims), std::move(strides));
+    return res;
 }
 }  // namespace tensor

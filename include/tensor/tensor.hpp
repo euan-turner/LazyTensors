@@ -23,10 +23,9 @@ class Tensor {
         /**
          * @brief Construct a new Tensor object, from an underlying TensorImpl
          * 
-         * @param dims Tensor dimensions
          * @param impl TensorImpl with backing memory already allocated
          */
-        explicit Tensor(std::vector<size_t> dims, std::unique_ptr<TensorImpl> impl);
+        explicit Tensor(std::unique_ptr<TensorImpl> impl);
 
 
     public:
@@ -196,6 +195,7 @@ class Tensor {
 
         // Dimension utility methods
         bool isMatrix() const;
+        bool isVector() const;
         bool isScalar() const;
         size_t rows() const;
         size_t cols() const;
@@ -222,8 +222,8 @@ class Tensor {
         Tensor matmul(const Tensor& other) const;
 
         // Reductions, returns new Tensor
-        Tensor sum(size_t dim = -1, bool keepdim=false) const;
-        Tensor mean(size_t dim = -1, bool keepdim=false) const;
+        Tensor sum(int axis = -1, bool keepdim=false) const;
+        Tensor mean(int axis = -1, bool keepdim=false) const;
 
         // Broadcast
         Tensor broadcast_to(const TensorShape& target_shape) const;

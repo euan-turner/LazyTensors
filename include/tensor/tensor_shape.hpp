@@ -13,7 +13,7 @@ struct TensorShape {
     std::vector<size_t> strides;
 
     TensorShape(size_t numel_, std::vector<size_t> dims_, std::vector<size_t> strides_)
-        : numel(numel), dims(std::move(dims_)), strides(std::move(strides_)) {}
+        : numel(numel_), dims(std::move(dims_)), strides(std::move(strides_)) {}
 };
 
 // Helper to create TensorShape from dimensions
