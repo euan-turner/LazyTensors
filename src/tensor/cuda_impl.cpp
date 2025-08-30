@@ -15,10 +15,10 @@ std::unique_ptr<TensorImpl> CUDAImpl::to(Device target) const { return nullptr; 
 
 void CUDAImpl::apply(const Op& op) {}
 
-std::unique_ptr<TensorImpl> CUDAImpl::matmul(const TensorImpl& b) const { return nullptr; }
+std::unique_ptr<TensorImpl> CUDAImpl::matmul(const TensorImpl& b) { return nullptr; }
 
-std::unique_ptr<TensorImpl> CUDAImpl::sum(int64_t dim, bool keepdim) const { return nullptr; }
-std::unique_ptr<TensorImpl> CUDAImpl::mean(int64_t dim, bool keepdim) const { return nullptr; }
+std::unique_ptr<TensorImpl> CUDAImpl::sum(int axis, bool keepdim) { return nullptr; }
+std::unique_ptr<TensorImpl> CUDAImpl::mean(int axis, bool keepdim) { return nullptr; }
 
 std::unique_ptr<TensorImpl> CUDAImpl::transpose(const std::vector<size_t>& axes) const { return nullptr; }
 

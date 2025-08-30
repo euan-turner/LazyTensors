@@ -31,16 +31,23 @@ class CPUImpl final : public TensorImpl {
         // Single entrypoint for all buffered/fusible ops
         void apply(const Op& op) override;
 
-        // --- Out-of-place operations ---
-        std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) const override;
-
-        std::unique_ptr<TensorImpl> sum(int64_t dim, bool keepdim) const override;
-        std::unique_ptr<TensorImpl> mean(int64_t dim, bool keepdim) const override;
-
         std::unique_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const override;
 
         // --- Flush buffered operations ---
         void flush() override;
+
+        // --- Out-of-place operations ---
+        std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) override;
+
+        /**
+         * @brief Sums a Tensor along a specified axis
+         * 
+         * @param axis Axis to sum along, -1 to sum whole Tensor
+         * @param keepdim Retain collapsed axis dimension with length 1
+         * @return std::unique_ptr<TensorImpl> 
+         */
+        std::unique_ptr<TensorImpl> sum(int axis, bool keepdim) override;
+        std::unique_ptr<TensorImpl> mean(int axis, bool keepdim) override;
 };
 
 }

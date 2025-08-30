@@ -16,7 +16,8 @@ namespace tensor {
  *  - Device-specific execution (CPU / CUDA)
  *  - Primitive ops (elementwise, matmul, reductions, etc.)
  *
- * Tensor forwards high-level API calls to its Impl.
+ * Tensor forwards high-level API calls to its Impl. The Impl can
+ * assume that dimensions will always match for the operation.
  */
 class TensorImpl {
     protected:
@@ -46,7 +47,7 @@ class TensorImpl {
     virtual float at(const std::vector<size_t>& idx) const = 0;
     virtual void set(const std::vector<size_t>& idx, float v) = 0;
 
-    size_t numel() const { return _shape->numel; }
+    inline size_t numel() const { return _shape->numel; }
     const std::shared_ptr<TensorShape>& shape() const { return _shape; }
 
     // --- Device info ---
@@ -60,17 +61,18 @@ class TensorImpl {
     // --- In-place / fusible elementwise ops ---
     // Single entrypoint for all buffered/fusible ops
     virtual void apply(const Op& op) = 0;
-
-    // --- Out-of-place operations ---
-    virtual std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) const = 0;
-
-    virtual std::unique_ptr<TensorImpl> sum(int64_t dim, bool keepdim) const = 0;
-    virtual std::unique_ptr<TensorImpl> mean(int64_t dim, bool keepdim) const = 0;
-
+    // Creates a new view of the same data
     virtual std::unique_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const = 0;
 
     // --- Flush buffered operations ---
     virtual void flush() = 0;
+
+    // --- Out-of-place operations ---
+    // Non-const as they will need to flush first
+    virtual std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) = 0;
+
+    virtual std::unique_ptr<TensorImpl> sum(int axis, bool keepdim) = 0;
+    virtual std::unique_ptr<TensorImpl> mean(int axis, bool keepdim) = 0;
 };
 
 } // namespace tensor

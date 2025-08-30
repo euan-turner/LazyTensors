@@ -222,8 +222,8 @@ class Tensor {
         Tensor matmul(const Tensor& other) const;
 
         // Reductions, returns new Tensor
-        Tensor sum(int64_t dim = -1, bool keepdim=false) const;
-        Tensor mean(int64_t dim = -1, bool keepdim=false) const;
+        Tensor sum(size_t dim = -1, bool keepdim=false) const;
+        Tensor mean(size_t dim = -1, bool keepdim=false) const;
 
         // Broadcast
         Tensor broadcast_to(const TensorShape& target_shape) const;

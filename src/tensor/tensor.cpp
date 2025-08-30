@@ -59,9 +59,9 @@ size_t Tensor::length() const {}
 
 Tensor Tensor::matmul(const Tensor& other) const {}
 
-Tensor Tensor::sum(int64_t dim, bool keepdim) const {}
+Tensor Tensor::sum(size_t dim, bool keepdim) const {}
 
-Tensor Tensor::mean(int64_t dim, bool keepdim) const {}
+Tensor Tensor::mean(size_t dim, bool keepdim) const {}
 
 Tensor Tensor::broadcast_to(const TensorShape& target_shape) const {}
 

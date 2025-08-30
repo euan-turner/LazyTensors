@@ -32,10 +32,10 @@ class CUDAImpl final : public TensorImpl {
         void apply(const Op& op) override;
 
         // --- Out-of-place operations ---
-        std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) const override;
+        std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) override;
 
-        std::unique_ptr<TensorImpl> sum(int64_t dim, bool keepdim) const override;
-        std::unique_ptr<TensorImpl> mean(int64_t dim, bool keepdim) const override;
+        std::unique_ptr<TensorImpl> sum(int axis, bool keepdim) override;
+        std::unique_ptr<TensorImpl> mean(int axis, bool keepdim) override;
 
         std::unique_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const override;
 
