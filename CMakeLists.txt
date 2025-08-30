@@ -1,3 +1,16 @@
+# InitTests target (for initialisation functions)
+add_executable(InitTests
+	test/init/init_test.cpp
+	test/catch_amalgamated.cpp
+)
+target_include_directories(InitTests PRIVATE include)
+target_link_libraries(InitTests PRIVATE init tensor)
+add_test(NAME InitTests COMMAND InitTests)
+file(GLOB INIT_HEADERS "include/init/*.hpp")
+file(GLOB INIT_SOURCES "src/init/*.cpp")
+
+add_library(init STATIC ${INIT_SOURCES} ${INIT_HEADERS})
+target_include_directories(init PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # Always build with debug symbols for tests
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 
