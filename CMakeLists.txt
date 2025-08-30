@@ -1,44 +1,43 @@
-# InitTests target (for initialisation functions)
-add_executable(InitTests
-	test/init/init_test.cpp
-	test/catch_amalgamated.cpp
-)
-target_include_directories(InitTests PRIVATE include)
-target_link_libraries(InitTests PRIVATE init tensor)
-add_test(NAME InitTests COMMAND InitTests)
-file(GLOB INIT_HEADERS "include/init/*.hpp")
-file(GLOB INIT_SOURCES "src/init/*.cpp")
-
-add_library(init STATIC ${INIT_SOURCES} ${INIT_HEADERS})
-target_include_directories(init PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-# Always build with debug symbols for tests
-set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-
-# TensorTests target
-
-# TensorTests target (link with Catch2 amalgamated source)
-add_executable(TensorTests
-	test/tensor/cpu_impl_test.cpp
-	test/catch_amalgamated.cpp
-	# Add more tensor test files here as needed
-)
-target_compile_options(TensorTests PRIVATE -g)
-target_include_directories(TensorTests PRIVATE include)
-
-target_link_libraries(TensorTests PRIVATE tensor)
-
-# Register TensorTests with CTest
-add_test(NAME TensorTests COMMAND TensorTests)
+cmake_minimum_required(VERSION 3.10)
+project(tensor)
 
 enable_testing()
 set(CTEST_OUTPUT_ON_FAILURE 1)
 
-cmake_minimum_required(VERSION 3.10)
-project(tensor)
+# Always build with debug symbols for tests
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 
-file(GLOB TENSOR_HEADERS "include/tensor/*.hpp")
-file(GLOB TENSOR_SOURCES "src/tensor/*.cpp")
+# ---- Function to create a library from a module ----
+function(add_module name)
+    file(GLOB MODULE_HEADERS "include/${name}/*.hpp")
+    file(GLOB MODULE_SOURCES "src/${name}/*.cpp")
+    add_library(${name} STATIC ${MODULE_SOURCES} ${MODULE_HEADERS})
+    target_include_directories(${name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_options(${name} PRIVATE -g)
+endfunction()
 
-add_library(tensor STATIC ${TENSOR_SOURCES} ${TENSOR_HEADERS})
-target_compile_options(tensor PRIVATE -g)
-target_include_directories(tensor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# ---- Function to create a test executable for a module ----
+function(add_module_test name)
+    file(GLOB TEST_SOURCES "test/${name}/*.cpp")
+    if(TEST_SOURCES)
+        add_executable(${name}Tests
+            ${TEST_SOURCES}
+            test/catch_amalgamated.cpp
+        )
+        target_include_directories(${name}Tests PRIVATE include)
+        target_link_libraries(${name}Tests PRIVATE ${name} tensor)
+        add_test(NAME ${name}Tests COMMAND ${name}Tests)
+    else()
+        message(WARNING "No test sources found for module '${name}'")
+    endif()
+endfunction()
+
+# ---- Define modules ----
+add_module(tensor)
+add_module(init)
+add_module(loss)
+
+# ---- Define tests ----
+add_module_test(tensor)
+add_module_test(init)
+add_module_test(loss)
