@@ -1,4 +1,5 @@
 #include "tensor/tensor.hpp"
+#include "tensor/cuda_impl.hpp"
 #include "tensor/tensor_shape.hpp"
 #include "tensor/tensor_ops.hpp"
 
@@ -14,8 +15,20 @@ Tensor::Tensor(std::vector<size_t> dims, Device device) : _device(device) {
     _impl = TensorImpl::create_impl(_device, _shape);
 }
 
-Tensor Tensor::to(Device device) {
-  throw std::runtime_error("Not implemented yet");
+void Tensor::to(Device target) {
+  if (target == device()) return;
+
+  auto cpu_tensor = _impl->to_cpu();
+  switch (target) {
+    case Device::CPU:
+      _impl = std::move(cpu_tensor);
+      break;
+    case Device::CUDA:
+      _impl = CUDAImpl::from_cpu(*cpu_tensor.get());
+      break;
+    default:
+      throw std::runtime_error("Unsupported device");
+  }
 }
 
 Tensor Tensor::clone() const {

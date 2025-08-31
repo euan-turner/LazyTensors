@@ -30,7 +30,8 @@ class CPUImpl final : public TensorImpl {
 
         // --- Core cloning / transfers ---
         std::unique_ptr<TensorImpl> clone() const override;
-        std::unique_ptr<TensorImpl> to(Device target) const override;
+        std::unique_ptr<CPUImpl> to_cpu() const override;
+        static std::unique_ptr<TensorImpl> from_cpu(const CPUImpl& cpu_tensor);
 
         // --- In-place / fusible elementwise ops ---
         // Single entrypoint for all buffered/fusible ops

@@ -85,10 +85,9 @@ class Tensor {
         /**
          * @brief Move this Tensor to a different device
          * 
-         * @param device Target device
-         * @return Tensor 
+         * @param target Target device
          */
-        Tensor to(Device device);
+        void to(Device target);
 
         /**
          * @brief Construct a Tensor by copying from this instance

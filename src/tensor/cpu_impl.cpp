@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 
-using namespace tensor;
+namespace tensor {
 
 CPUImpl::CPUImpl(const std::shared_ptr<TensorShape> shape) : TensorImpl(shape) {
   _data = (float*)malloc(numel() * sizeof(float));
@@ -29,6 +29,7 @@ CPUImpl& CPUImpl::operator=(const CPUImpl& other) {
     if (this != &other) {
         TensorImpl::operator=(other);
         
+        // TODO: Need better control over when data is allocated and freed
         free(_data);
         _data = nullptr;
         
@@ -71,7 +72,14 @@ std::unique_ptr<TensorImpl> CPUImpl::clone() const {
   return other;
 }
 
-std::unique_ptr<TensorImpl> CPUImpl::to(Device target) const { return nullptr; }
+// TODO
+std::unique_ptr<CPUImpl> CPUImpl::to_cpu() const {
+  return std::make_unique<CPUImpl>(*this);
+}
+
+std::unique_ptr<TensorImpl> CPUImpl::from_cpu(const CPUImpl& cpu_tensor) {
+  return std::make_unique<CPUImpl>(cpu_tensor);
+}
 
 // Initial implementation - just naively dispatch every op immediately
 void CPUImpl::apply(const Op& op) {
@@ -319,3 +327,5 @@ std::unique_ptr<TensorImpl> CPUImpl::transpose(const std::vector<size_t>& axes) 
 }
 
 void CPUImpl::flush() {}
+
+}

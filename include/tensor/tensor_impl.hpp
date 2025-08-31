@@ -8,6 +8,8 @@
 
 namespace tensor {
 
+class CPUImpl;
+
 /**
  * @brief Abstract backend implementation of a Tensor.
  * 
@@ -24,7 +26,6 @@ class TensorImpl {
     std::shared_ptr<TensorShape> _shape;
 
     size_t flatIndex(const std::vector<size_t>& indices) const;
-    void copy_to(TensorImpl& dst_backend);
 
     public:
     /**
@@ -69,7 +70,9 @@ class TensorImpl {
 
     // --- Core cloning / transfers ---
     virtual std::unique_ptr<TensorImpl> clone() const = 0;
-    virtual std::unique_ptr<TensorImpl> to(Device target) const = 0;
+    virtual std::unique_ptr<CPUImpl> to_cpu() const = 0;
+    // Each subclass must implement
+    // static std::unique_ptr<TensorImpl> from_cpu(const CPUImpl& cpu_tensor)
 
     // --- In-place / fusible elementwise ops ---
     // Single entrypoint for all buffered/fusible ops

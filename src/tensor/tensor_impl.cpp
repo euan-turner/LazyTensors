@@ -6,10 +6,6 @@
 
 namespace tensor {
 
-void TensorImpl::copy_to(TensorImpl& dst) {
-  throw std::runtime_error("Not implemented yet");
-}
-
 size_t TensorImpl::flatIndex(const std::vector<size_t>& indices) const {
     if (indices.size() != _shape->dims.size()) {
         throw std::runtime_error("Incorrect number of indices");
@@ -31,7 +27,7 @@ std::unique_ptr<TensorImpl> TensorImpl::create_impl(Device device, std::shared_p
           return std::make_unique<CPUImpl>(shape);
 #ifdef CUDA_AVAILABLE
         case Device::CUDA:
-          _impl = std::make_unique<CUDAImpl>(shape);
+          return std::make_unique<CUDAImpl>(shape);
 #endif
         default:
           throw std::runtime_error("Unknown device");
