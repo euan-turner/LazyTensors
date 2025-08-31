@@ -4,30 +4,34 @@ project(tensor LANGUAGES CXX CUDA)
 enable_testing()
 set(CTEST_OUTPUT_ON_FAILURE 1)
 
-# Always build with debug symbols for tests
-set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-
 # -----------------------
 # --- Build Options ---
 # -----------------------
 option(USE_CUDA "Enable CUDA support" ON)
+option(CUDA_DEBUG "Enable CUDA device debug symbols (-G -g). Slows kernels a lot!" OFF)
+option(HOST_DEBUG "Enable host debug symbols" OFF)
 
 # -----------------------
 # --- Compiler Settings ---
 # -----------------------
 set(CMAKE_CXX_STANDARD 17)
 
+# Default build type = Release if not set
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+# -----------------------
+# --- CUDA setup ---
+# -----------------------
 if(USE_CUDA)
     set(CMAKE_CUDA_COMPILER "/vol/cuda/12.4.0/bin/nvcc" CACHE FILEPATH "CUDA compiler")
     set(CMAKE_CUDA_ARCHITECTURES 61) # Titan XP
 
-
-    # Ensure CUDAToolkit path is set
     if(NOT DEFINED CUDAToolkit_ROOT)
         set(CUDAToolkit_ROOT "/vol/cuda/12.4.0")
     endif()
 
-    # Find CUDA Toolkit
     find_package(CUDAToolkit)
     if(CUDAToolkit_FOUND)
         message(STATUS "CUDA toolkit found at ${CUDAToolkit_ROOT}")
@@ -68,7 +72,21 @@ function(add_module name)
         target_include_directories(${name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
     endif()
 
-    target_compile_options(${name} PRIVATE -g)
+    # --- Apply debug flags conditionally ---
+    if(HOST_DEBUG)
+        message(STATUS "Enabling host debug symbols for module ${name}")
+        target_compile_options(${name} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-g>)
+    endif()
+
+    if(USE_CUDA)
+        if(CUDA_DEBUG)
+            message(STATUS "Enabling CUDA device debug (-G -g) for module ${name}")
+            target_compile_options(${name} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-G;-g>)
+        elseif(HOST_DEBUG)
+            message(STATUS "Using line info only for CUDA for module ${name}")
+            target_compile_options(${name} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--generate-line-info;-g>)
+        endif()
+    endif()
 endfunction()
 
 # -----------------------
@@ -82,7 +100,17 @@ function(add_module_test name)
             test/catch_amalgamated.cpp
         )
         target_include_directories(${name}Tests PRIVATE include)
-        target_link_libraries(${name}Tests PRIVATE ${name} tensor)
+
+        # Gather dependencies (default: module itself + tensor)
+        set(default_deps ${name} tensor)
+
+        # Merge any additional dependencies passed to the function
+        if(ARGN)
+            list(APPEND default_deps ${ARGN})
+        endif()
+
+        # Link the test executable
+        target_link_libraries(${name}Tests PRIVATE ${default_deps})
         add_test(NAME ${name}Tests COMMAND ${name}Tests)
     else()
         message(WARNING "No test sources found for module '${name}'")
@@ -99,6 +127,6 @@ add_module(loss)
 # -----------------------
 # --- Define tests ---
 # -----------------------
-add_module_test(tensor)
+add_module_test(tensor init)
 add_module_test(init)
 add_module_test(loss)

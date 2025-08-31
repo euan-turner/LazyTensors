@@ -78,13 +78,13 @@ std::unique_ptr<TensorImpl> CUDAImpl::clone() const {
 
 std::unique_ptr<CPUImpl> CUDAImpl::to_cpu() const { 
   auto cpu_tensor = std::make_unique<CPUImpl>(_shape);
-  // TODO: copy GPU to CPU
+  CUDA_CHECK(cudaMemcpy(cpu_tensor->raw_data(), _data, numel() * sizeof(float), cudaMemcpyDeviceToHost));
   return cpu_tensor;
 }
 
 std::unique_ptr<TensorImpl> CUDAImpl::from_cpu(const CPUImpl& cpu_tensor) {
   auto gpu_tensor = std::make_unique<CUDAImpl>(cpu_tensor.shape());
-  // TODO: copy CPU to GPU
+  CUDA_CHECK(cudaMemcpy(gpu_tensor->_data, cpu_tensor.raw_data(), cpu_tensor.numel() * sizeof(float), cudaMemcpyHostToDevice));
   return gpu_tensor;
 }
 

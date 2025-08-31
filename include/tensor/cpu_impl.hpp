@@ -12,6 +12,7 @@ class CPUImpl final : public TensorImpl {
     private:
         float* _data;
 
+
     public:
         explicit CPUImpl(const std::shared_ptr<TensorShape> shape);
         ~CPUImpl() override;
@@ -24,6 +25,7 @@ class CPUImpl final : public TensorImpl {
         // --- Memory access ---
         float at(const std::vector<size_t>& idx) const override;
         void set(const std::vector<size_t>& idx, float v) override;
+        float* raw_data() const { return _data; } // for moving tensor impls between devices
 
         // --- Device info ---
         Device device() const override;
@@ -32,6 +34,7 @@ class CPUImpl final : public TensorImpl {
         std::unique_ptr<TensorImpl> clone() const override;
         std::unique_ptr<CPUImpl> to_cpu() const override;
         static std::unique_ptr<TensorImpl> from_cpu(const CPUImpl& cpu_tensor);
+
 
         // --- In-place / fusible elementwise ops ---
         // Single entrypoint for all buffered/fusible ops

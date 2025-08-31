@@ -116,7 +116,7 @@ void CPUImpl::apply(const Op& op) {
 
         case OpType::LOG:
             for (size_t i = 0; i < numel(); i++)
-                _data[i] = std::log(_data[i]);
+                _data[i] = std::log2(_data[i]);
             break;
 
         case OpType::CLAMP: {
