@@ -42,6 +42,19 @@ class TensorImpl {
      */
     virtual ~TensorImpl() = default;
 
+    // Allow copying - just copies shared_ptr
+    TensorImpl(const TensorImpl& other) : _shape(other._shape) {}
+    TensorImpl& operator=(const TensorImpl& other) {
+        if (this != &other) {
+            _shape = other._shape;
+        }
+        return *this;
+    }
+    
+    // Move operations
+    TensorImpl(TensorImpl&&) = default;
+    TensorImpl& operator=(TensorImpl&&) = default;
+
 
     // --- Memory access ---
     virtual float at(const std::vector<size_t>& idx) const = 0;

@@ -96,30 +96,19 @@ class Tensor {
          * 
          * @param other 
          */
-        Tensor(const Tensor& other);
-
-        /**
-         * @brief Copy assign from this Tensor
-         * 
-         * @param other 
-         * @return Tensor& 
-         */
-        Tensor& operator=(const Tensor& other);
-
-        /**
-         * @brief Construct a new Tensor object by moving all state from this instance
-         * 
-         * @param other 
-         */
-        Tensor(Tensor&& other) noexcept;
-
-        /**
-         * @brief Move assign from this Tensor
-         * 
-         * @param other 
-         * @return Tensor& 
-         */
-        Tensor& operator=(Tensor&& other) noexcept;
+        Tensor(const Tensor& other)
+            : _shape(other._shape)
+            , _impl(other._impl ? other._impl->clone() : nullptr)
+            , _device(other._device) {}
+        
+        Tensor& operator=(const Tensor& other) {
+            if (this != &other) {
+                _shape = other._shape;
+                _impl = other._impl ? other._impl->clone() : nullptr;
+                _device = other._device;
+            }
+            return *this;
+        }
 
         ~Tensor() = default;
 

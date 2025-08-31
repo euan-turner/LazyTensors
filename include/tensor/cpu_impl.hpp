@@ -16,6 +16,11 @@ class CPUImpl final : public TensorImpl {
         explicit CPUImpl(const std::shared_ptr<TensorShape> shape);
         ~CPUImpl() override;
 
+        CPUImpl(const CPUImpl& other);                    // Copy constructor
+        CPUImpl& operator=(const CPUImpl& other);         // Copy assignment
+        CPUImpl(CPUImpl&& other) noexcept;               // Move constructor  
+        CPUImpl& operator=(CPUImpl&& other) noexcept;    // Move assignment
+
         // --- Memory access ---
         float at(const std::vector<size_t>& idx) const override;
         void set(const std::vector<size_t>& idx, float v) override;

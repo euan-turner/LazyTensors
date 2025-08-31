@@ -14,6 +14,52 @@ CPUImpl::~CPUImpl() {
   free(_data);
 }
 
+CPUImpl::CPUImpl(const CPUImpl& other) 
+    : TensorImpl(other)
+    , _data(nullptr)
+{
+    if (other._data && _shape) {
+      size_t size = numel() * sizeof(float);
+      _data = (float*)malloc(size);
+      memcpy(_data, other._data, size);
+    }
+}
+
+CPUImpl& CPUImpl::operator=(const CPUImpl& other) {
+    if (this != &other) {
+        TensorImpl::operator=(other);
+        
+        free(_data);
+        _data = nullptr;
+        
+        if (other._data && _shape) {
+            size_t size = numel() * sizeof(float);
+            _data = (float*)malloc(size);
+            memcpy(_data, other._data, size);
+        }
+    }
+    return *this;
+}
+
+CPUImpl::CPUImpl(CPUImpl&& other) noexcept 
+    : TensorImpl(std::move(other))
+    , _data(other._data)
+{
+    other._data = nullptr;
+}
+
+CPUImpl& CPUImpl::operator=(CPUImpl&& other) noexcept {
+    if (this != &other) {
+        TensorImpl::operator=(std::move(other));
+        
+        free(_data);
+        _data = other._data;
+        other._data = nullptr;
+    }
+    return *this;
+}
+
+
 float CPUImpl::at(const std::vector<size_t>& idx) const { return _data[flatIndex(idx)]; }
 void CPUImpl::set(const std::vector<size_t>& idx, float v) { _data[flatIndex(idx)] = v; }
 

@@ -18,14 +18,6 @@ Tensor Tensor::to(Device device) {
   throw std::runtime_error("Not implemented yet");
 }
 
-Tensor::Tensor(const Tensor& other) {}
-
-Tensor& Tensor::operator=(const Tensor& other) {}
-
-Tensor::Tensor(Tensor&& other) noexcept {}
-
-Tensor& Tensor::operator=(Tensor&& other) noexcept {}
-
 Tensor Tensor::clone() const {
   std::unique_ptr<TensorImpl> new_impl = _impl->clone();
   return Tensor(std::move(new_impl));
