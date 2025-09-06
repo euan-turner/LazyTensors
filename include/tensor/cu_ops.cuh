@@ -9,7 +9,7 @@ struct name { \
 };
 
 DEFINE_UNARY_OP(ExpOp, __expf(x))
-DEFINE_UNARY_OP(LogOp, __log2f(x))
+DEFINE_UNARY_OP(LogOp, __logf(x))
 
 struct ClampOp {
   float _lo, _hi;

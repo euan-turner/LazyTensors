@@ -149,14 +149,14 @@ TEST_CASE("Tensor exp, log, clamp ops (CPU)", "[Tensor][CPUImpl]") {
     SECTION("Out-of-place log") {
         Tensor b = a.log();
     REQUIRE(b(0) == Catch::Approx(0.0f));
-    REQUIRE(b(1) == Catch::Approx(std::log2(2.0f)));
-    REQUIRE(b(2) == Catch::Approx(std::log2(3.0f)));
+    REQUIRE(b(1) == Catch::Approx(std::log(2.0f)));
+    REQUIRE(b(2) == Catch::Approx(std::log(3.0f)));
     }
     SECTION("In-place log_") {
         a.log_();
     REQUIRE(a(0) == Catch::Approx(0.0f));
-    REQUIRE(a(1) == Catch::Approx(std::log2(2.0f)));
-    REQUIRE(a(2) == Catch::Approx(std::log2(3.0f)));
+    REQUIRE(a(1) == Catch::Approx(std::log(2.0f)));
+    REQUIRE(a(2) == Catch::Approx(std::log(3.0f)));
     }
     SECTION("Out-of-place clamp") {
         Tensor b = a.clamp(1.5f, 2.5f);

@@ -20,7 +20,7 @@ enum class OpType {
     SCAL_MUL,      // scalar multiplication
     SCAL_DIV,      // scalar division
     EXP,           // elementwise exponential
-    LOG,           // elementwise logarithm
+    LOG,           // elementwise logarithm (base e)
     CLAMP,         // elementwise clamp
 };
 
