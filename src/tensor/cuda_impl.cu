@@ -128,4 +128,126 @@ void CUDAImpl::apply(const Op& op) {
     }
 }
 
+// TODO: optimise
+__global__ void matvec_kernel(float* mat, float* vec, float* res, size_t M, size_t N) {
+
+}
+
+void launch_matvec(float* mat, float* vec, float* res, size_t M, size_t N) {
+  // mat is M x N, vec is N, res is M
+}
+
+// TODO: optimise
+__global__ void matmat_kernel(float* a, float* b, float* res, size_t M, size_t N, size_t K) {
+  // a is M x N, b is N x K, res is M x K
+  // one thread per res element, so M x K threads
+  int col = blockIdx.x * blockDim.x + threadIdx.x;
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
+
+  // this thread computes res[row][col]
+  // so dot products a[row][:] * b[:][col]
+
+  if (row < M && col < K) {
+    float v = 0.0f;
+    for (size_t i = 0; i < N; ++i) {
+      v += a[row * N + i] * b[i * K + col];
+    }
+    res[row * K + col] = v;
+  }
+
+}
+
+void launch_matmat(float* a, float* b, float* res, size_t M, size_t N, size_t K) {
+  // a is M x N, b is N x K, res is M x K
+  dim3 BLOCK_DIM(32, 32);
+  dim3 GRID_DIM(CEIL_DIV(K, 32), CEIL_DIV(M, 32));
+  matmat_kernel<<<GRID_DIM, BLOCK_DIM>>>(a, b, res, M, N, K);
+  CUDA_CHECK(cudaGetLastError());
+  CUDA_CHECK(cudaDeviceSynchronize());
+
+}
+
+// TODO: optimise
+__global__ void vecmat_kernel(float* vec, float* mat, float* res, size_t M, size_t N) {
+
+}
+
+void launch_vecmat(float* vec, float* mat, float* res, size_t M, size_t N) {
+  // vec is (1 x) M, mat is M x N, res is (1 x) N
+}
+
+// TODO: optimise
+__global__ void dotprod_kernel(float* a, float* b, float* res, size_t N) {
+
+}
+
+void launch_dotprod(float* a, float* b, float* res, size_t N) {
+  // a, b are N, res is 1
+}
+
+std::unique_ptr<TensorImpl> CUDAImpl::matmul(const TensorImpl& b) {
+  // TODO: Broadcasting
+  auto other = dynamic_cast<const CUDAImpl*>(&b);
+  if (!other) {
+    throw std::runtime_error("CUDAImpl::matmul: expected CUDAImpl");
+  }
+
+  const auto& a_dims = _shape->dims;
+  const auto& b_dims = other->_shape->dims;
+
+  if (a_dims.size() == 2 && b_dims.size() == 1) {
+    // Matrix x Vector = Vector
+    if (a_dims[1] != b_dims[0]) {
+      throw std::runtime_error("CUDAImpl::matmul: Matrix columns must match vector length");
+    }
+    size_t rows = a_dims[0];
+    size_t cols = a_dims[1];
+    auto result = std::make_unique<CUDAImpl>(createShape(std::vector<size_t>{rows}));
+
+    launch_matvec(_data, other->_data, result->_data, rows, cols);
+    return result;
+  }
+
+  if (a_dims.size() == 2 && b_dims.size() == 2) {
+    // Matrix x Matrix = Matrix
+    if (a_dims[1] != b_dims[0]) {
+      throw std::runtime_error("CUDAImpl::matmul: Matrix inner dimensions must match");
+    }
+    size_t rows = a_dims[0];
+    size_t cols = b_dims[1];
+    size_t inner = a_dims[1];
+    auto result = std::make_unique<CUDAImpl>(createShape(std::vector<size_t>{rows, cols}));
+
+    launch_matmat(_data, other->_data, result->_data, rows, inner, cols);
+    return result;
+  }
+
+  if (a_dims.size() == 1 && b_dims.size() == 2) {
+    // Vector x Matrix = Vector (row vectors)
+    if (a_dims[0] != b_dims[0]) {
+      throw std::runtime_error("CUDAImpl::matmul: Vector length must match matrix rows");
+    }
+
+    size_t rows = b_dims[0];
+    size_t cols = b_dims[1];
+    auto result = std::make_unique<CUDAImpl>(createShape(std::vector<size_t>{cols}));
+
+    launch_vecmat(_data, other->_data, result->_data, rows, cols);
+    return result;
+  }
+
+  if (a_dims.size() == 1 && b_dims.size() == 1) {
+    // Vector x Vector = Inner Product Scalar
+    if (a_dims[0] != b_dims[0]) {
+      throw std::runtime_error("CUDAImpl::matmul: Vector lengths must match");
+    }
+
+    size_t len = a_dims[0];
+    auto result = std::make_unique<CUDAImpl>(createShape(std::vector<size_t>{1}));
+
+    launch_dotprod(_data, other->_data, result->_data, len);
+    return result;
+  }
+}
+
 }

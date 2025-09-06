@@ -218,7 +218,7 @@ std::unique_ptr<TensorImpl> CPUImpl::matmul(const TensorImpl& b) {
   }
 
   if (a_dims.size() == 1 && b_dims.size() == 2) {
-      // Vector × Matrix = Vector
+      // Vector × Matrix = Vector (row vectors)
       if (a_dims[0] != b_dims[0]) {
           throw std::runtime_error("Vector length must match matrix rows");
       }
@@ -237,18 +237,21 @@ std::unique_ptr<TensorImpl> CPUImpl::matmul(const TensorImpl& b) {
   }
 
   if (a_dims.size() == 1 && b_dims.size() == 1) {
-      // Vector × Vector = Outer product (Matrix)
-      size_t rows = a_dims[0];
-      size_t cols = b_dims[0];
-
-      auto result = std::make_unique<CPUImpl>(createShape(std::vector<size_t>{rows, cols}));
-
-      for (size_t i = 0; i < rows; ++i) {
-          for (size_t j = 0; j < cols; ++j) {
-              float v = at({i}) * other->at({j});
-              result->set({i, j}, v);
-          }
+      // Vector × Vector = Inner Product (Scalar)
+      if (a_dims[0] != b_dims[0]) {
+        throw std::runtime_error("Vector lengths must match");
       }
+      size_t len = a_dims[0];
+
+      // Scalar result
+      auto result = std::make_unique<CPUImpl>(createShape(std::vector<size_t>{1}));
+
+      float v = 0.0f;
+      for (size_t i = 0; i < len; ++i) {
+        v += at({i}) * other->at({i});
+      }
+      result->set({0}, v);
+
       return result;
   }
 

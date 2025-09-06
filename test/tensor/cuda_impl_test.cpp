@@ -174,3 +174,34 @@ TEST_CASE("CPU vs CUDA consistency elementwise unary+scalar", "[CUDA]") {
     require_tensors_equal(cpu_tensor, cuda_tensor);
   }
 }
+
+TEST_CASE("CPU vs CUDA matmuls", "[CUDA]") {
+  std::vector<size_t> dims = {256, 256};
+
+  Tensor cpu_a = make_test_cpu_tensor(dims);
+  Tensor cuda_a = cpu_a;
+  cuda_a.to(Device::CUDA);
+
+  SECTION("Square Matrix-Matrix Multiplication") {
+    Tensor cpu_b = make_test_cpu_tensor(dims);
+    Tensor cuda_b = cpu_b;
+    cuda_b.to(Device::CUDA);
+
+    Tensor cpu_result = cpu_a.matmul(cpu_b);
+    Tensor cuda_result = cuda_a.matmul(cuda_b);
+    cuda_result.to(Device::CPU);
+    require_tensors_equal(cpu_result, cuda_result);
+  }
+
+  SECTION("Rectangle Matrix-Matrix Multiplication") {
+    Tensor cpu_b = make_test_cpu_tensor({256, 128});
+    Tensor cuda_b = cpu_b;
+    cuda_b.to(Device::CUDA);
+
+    Tensor cpu_result = cpu_a.matmul(cpu_b);
+    Tensor cuda_result = cuda_a.matmul(cuda_b);
+    cuda_result.to(Device::CPU);
+    require_tensors_equal(cpu_result, cuda_result);
+  }
+
+}

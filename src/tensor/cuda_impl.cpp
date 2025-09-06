@@ -88,7 +88,7 @@ std::unique_ptr<TensorImpl> CUDAImpl::from_cpu(const CPUImpl& cpu_tensor) {
   return gpu_tensor;
 }
 
-std::unique_ptr<TensorImpl> CUDAImpl::matmul(const TensorImpl& b) {}
+
 
 std::unique_ptr<TensorImpl> CUDAImpl::sum(int axis, bool keepdim) {}
 
