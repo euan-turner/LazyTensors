@@ -225,5 +225,20 @@ TEST_CASE("CPU vs CUDA matmuls", "[CUDA]") {
     cuda_result.to(Device::CPU);
     require_tensors_equal(cpu_result, cuda_result);
   }
+}
 
+TEST_CASE("CPU vs CUDA dot products", "[CUDA]") {
+  SECTION("Single Block Dot Product") {
+    Tensor cpu_a = make_test_cpu_tensor({32});
+    Tensor cuda_a = cpu_a;
+    cuda_a.to(Device::CUDA);
+    Tensor cpu_b = make_test_cpu_tensor({32});
+    Tensor cuda_b = cpu_b;
+    cuda_b.to(Device::CUDA);
+
+    Tensor cpu_result = cpu_a.matmul(cpu_b);
+    Tensor cuda_result = cuda_a.matmul(cuda_b);
+    cuda_result.to(Device::CPU);
+    require_tensors_equal(cpu_result, cuda_result);
+  }
 }

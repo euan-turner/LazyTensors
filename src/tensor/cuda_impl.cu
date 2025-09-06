@@ -58,6 +58,9 @@ void launch_elemwise_binop(float* a, float* b, size_t N, BinOp op) {
 
 // Initial implementation - just naively dispatch every op immediately
 // All operations applied in place
+// TODO:
+// 1. Buffer ops as much as possible, then naive dispatch when necessary
+// 2. Implement kernel fusions
 void CUDAImpl::apply(const Op& op) {
     switch (op.type) {
         case OpType::SCAL_ADD: {
@@ -174,13 +177,36 @@ void launch_vecmat(float* vec, float* mat, float* res, size_t K, size_t N) {
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-// TODO: optimise
-__global__ void dotprod_kernel(float* a, float* b, float* res, size_t N) {
+// Vector dot product kernel: computes <A, B>
+// A is (N), B is (N), res is (1)
+__global__ void dotprod_kernel(float* A, float* B, float* res, size_t N) {
+  // One thread per A/B element, so N threads
+  // One shared memory element per thread in block, so N length array
+  extern __shared__ float smem[];
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int lane = threadIdx.x;
+  float val = (idx < N) ? (A[idx] * B[idx]) : 0.0f;
+  smem[lane] = val;
+  __syncthreads();
+  for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+    if (lane < stride) {
+      smem[lane] += smem[lane + stride];
+    }
+    __syncthreads();
+  }
 
+  if (threadIdx.x == 0) {
+    atomicAdd(res, *smem);
+  }
 }
 
+// Vector-vector dot product: a (N) * b (N) = res (1)
 void launch_dotprod(float* a, float* b, float* res, size_t N) {
-  // a, b are N, res is 1
+  int BLOCK_DIM = 32;
+  int GRID_DIM = CEIL_DIV(N, 32);
+  dotprod_kernel<<<GRID_DIM, BLOCK_DIM, BLOCK_DIM * sizeof(float)>>>(a, b, res, N);
+  CUDA_CHECK(cudaGetLastError());
+  CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 std::unique_ptr<TensorImpl> CUDAImpl::matmul(const TensorImpl& b) {
