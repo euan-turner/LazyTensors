@@ -204,4 +204,26 @@ TEST_CASE("CPU vs CUDA matmuls", "[CUDA]") {
     require_tensors_equal(cpu_result, cuda_result);
   }
 
+  SECTION("Matrix-Vector Multiplication") {
+    Tensor cpu_b = make_test_cpu_tensor({256});
+    Tensor cuda_b = cpu_b;
+    cuda_b.to(Device::CUDA);
+
+    Tensor cpu_result = cpu_a.matmul(cpu_b);
+    Tensor cuda_result = cuda_a.matmul(cuda_b);
+    cuda_result.to(Device::CPU);
+    require_tensors_equal(cpu_result, cuda_result);
+  }
+
+  SECTION("Vector-Matrix Multiplication") {
+    Tensor cpu_b = make_test_cpu_tensor({256});
+    Tensor cuda_b = cpu_b;
+    cuda_b.to(Device::CUDA);
+
+    Tensor cpu_result = cpu_a.matmul(cpu_b);
+    Tensor cuda_result = cuda_a.matmul(cuda_b);
+    cuda_result.to(Device::CPU);
+    require_tensors_equal(cpu_result, cuda_result);
+  }
+
 }

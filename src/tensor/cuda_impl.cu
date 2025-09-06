@@ -129,51 +129,49 @@ void CUDAImpl::apply(const Op& op) {
 }
 
 // TODO: optimise
-__global__ void matvec_kernel(float* mat, float* vec, float* res, size_t M, size_t N) {
+// Matrix multiplication kernel: computes C = A x B
+// A is (M x K), B is (K x N), C is (M x N)
+// M: number of rows of A and C (output)
+// N: number of columns of B and C (output)
+// K: inner dimension (columns of A, rows of B)
+__global__ void matmat_kernel(float* A, float* B, float* C, size_t M, size_t N, size_t K) {
+  // One thread per C element, so M x N threads
+  int col = blockIdx.x * blockDim.x + threadIdx.x; // N (output cols)
+  int row = blockIdx.y * blockDim.y + threadIdx.y; // M (output rows)
 
-}
-
-void launch_matvec(float* mat, float* vec, float* res, size_t M, size_t N) {
-  // mat is M x N, vec is N, res is M
-}
-
-// TODO: optimise
-__global__ void matmat_kernel(float* a, float* b, float* res, size_t M, size_t N, size_t K) {
-  // a is M x N, b is N x K, res is M x K
-  // one thread per res element, so M x K threads
-  int col = blockIdx.x * blockDim.x + threadIdx.x;
-  int row = blockIdx.y * blockDim.y + threadIdx.y;
-
-  // this thread computes res[row][col]
-  // so dot products a[row][:] * b[:][col]
-
-  if (row < M && col < K) {
+  if (row < M && col < N) {
     float v = 0.0f;
-    for (size_t i = 0; i < N; ++i) {
-      v += a[row * N + i] * b[i * K + col];
+    for (size_t i = 0; i < K; ++i) {
+      v += A[row * K + i] * B[i * N + col];
     }
-    res[row * K + col] = v;
+    C[row * N + col] = v;
   }
-
+}
+// Matrix-vector multiplication: mat (M x K) * vec (K) = res (M)
+void launch_matvec(float* mat, float* vec, float* res, size_t M, size_t K) {
+  dim3 BLOCK_DIM(32, 32);
+  dim3 GRID_DIM(1, CEIL_DIV(M, 32));
+  matmat_kernel<<<GRID_DIM, BLOCK_DIM>>>(mat, vec, res, M, 1, K);
+  CUDA_CHECK(cudaGetLastError());
+  CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-void launch_matmat(float* a, float* b, float* res, size_t M, size_t N, size_t K) {
-  // a is M x N, b is N x K, res is M x K
+// Matrix-matrix multiplication: a (M x K) * b (K x N) = res (M x N)
+void launch_matmat(float* a, float* b, float* res, size_t M, size_t K, size_t N) {
   dim3 BLOCK_DIM(32, 32);
-  dim3 GRID_DIM(CEIL_DIV(K, 32), CEIL_DIV(M, 32));
+  dim3 GRID_DIM(CEIL_DIV(N, 32), CEIL_DIV(M, 32));
   matmat_kernel<<<GRID_DIM, BLOCK_DIM>>>(a, b, res, M, N, K);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
-
 }
 
-// TODO: optimise
-__global__ void vecmat_kernel(float* vec, float* mat, float* res, size_t M, size_t N) {
-
-}
-
-void launch_vecmat(float* vec, float* mat, float* res, size_t M, size_t N) {
-  // vec is (1 x) M, mat is M x N, res is (1 x) N
+// Vector-matrix multiplication: vec (K) * mat (K x N) = res (N)
+void launch_vecmat(float* vec, float* mat, float* res, size_t K, size_t N) {
+  dim3 BLOCK_DIM(32, 32);
+  dim3 GRID_DIM(CEIL_DIV(N, 32), 1);
+  matmat_kernel<<<GRID_DIM, BLOCK_DIM>>>(vec, mat, res, 1, N, K);
+  CUDA_CHECK(cudaGetLastError());
+  CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 // TODO: optimise
