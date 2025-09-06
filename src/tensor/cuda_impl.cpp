@@ -56,7 +56,9 @@ CUDAImpl& CUDAImpl::operator=(CUDAImpl&& other) noexcept {
   return *this;
 }
 
-float CUDAImpl::at(const std::vector<size_t> &idx) const { 
+float CUDAImpl::at(const std::vector<size_t> &idx) {
+  flush();
+
   float res;
   float* addr = _data + flatIndex(idx);
   CUDA_CHECK(cudaMemcpy(&res, addr, sizeof(float), cudaMemcpyDeviceToHost));
@@ -64,6 +66,8 @@ float CUDAImpl::at(const std::vector<size_t> &idx) const {
 }
 
 void CUDAImpl::set(const std::vector<size_t> &idx, float v) {
+  flush();
+
   float* addr = _data + flatIndex(idx);
   CUDA_CHECK(cudaMemcpy(addr, &v, sizeof(float), cudaMemcpyHostToDevice));
 }
@@ -90,9 +94,15 @@ std::unique_ptr<TensorImpl> CUDAImpl::from_cpu(const CPUImpl& cpu_tensor) {
 
 
 
-std::unique_ptr<TensorImpl> CUDAImpl::sum(int axis, bool keepdim) {}
+std::unique_ptr<TensorImpl> CUDAImpl::sum(int axis, bool keepdim) {
+  flush();
 
-std::unique_ptr<TensorImpl> CUDAImpl::mean(int axis, bool keepdim) {}
+}
+
+std::unique_ptr<TensorImpl> CUDAImpl::mean(int axis, bool keepdim) {
+  flush();
+
+}
 
 std::unique_ptr<TensorImpl> CUDAImpl::transpose(const std::vector<size_t>& axes) const {}
 

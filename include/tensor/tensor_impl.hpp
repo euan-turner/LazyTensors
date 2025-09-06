@@ -58,7 +58,7 @@ class TensorImpl {
 
 
     // --- Memory access ---
-    virtual float at(const std::vector<size_t>& idx) const = 0;
+    virtual float at(const std::vector<size_t>& idx) = 0;
     virtual void set(const std::vector<size_t>& idx, float v) = 0;
 
     inline size_t numel() const { return _shape->numel; }
@@ -85,7 +85,7 @@ class TensorImpl {
 
     // --- Out-of-place operations ---
     // Non-const as they will need to flush first
-    virtual std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) = 0;
+    virtual std::unique_ptr<TensorImpl> matmul(TensorImpl& b) = 0;
 
     virtual std::unique_ptr<TensorImpl> sum(int axis, bool keepdim) = 0;
     virtual std::unique_ptr<TensorImpl> mean(int axis, bool keepdim) = 0;

@@ -23,7 +23,7 @@ class CPUImpl final : public TensorImpl {
         CPUImpl& operator=(CPUImpl&& other) noexcept;    // Move assignment
 
         // --- Memory access ---
-        float at(const std::vector<size_t>& idx) const override;
+        float at(const std::vector<size_t>& idx) override;
         void set(const std::vector<size_t>& idx, float v) override;
         float* raw_data() const { return _data; } // for moving tensor impls between devices
 
@@ -46,7 +46,7 @@ class CPUImpl final : public TensorImpl {
         void flush() override;
 
         // --- Out-of-place operations ---
-        std::unique_ptr<TensorImpl> matmul(const TensorImpl& b) override;
+        std::unique_ptr<TensorImpl> matmul(TensorImpl& b) override;
 
         /**
          * @brief Sums a Tensor along a specified axis

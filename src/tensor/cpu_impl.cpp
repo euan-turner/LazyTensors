@@ -61,8 +61,8 @@ CPUImpl& CPUImpl::operator=(CPUImpl&& other) noexcept {
 }
 
 
-float CPUImpl::at(const std::vector<size_t>& idx) const { return _data[flatIndex(idx)]; }
-void CPUImpl::set(const std::vector<size_t>& idx, float v) { _data[flatIndex(idx)] = v; }
+float CPUImpl::at(const std::vector<size_t>& idx) { flush(); return _data[flatIndex(idx)]; }
+void CPUImpl::set(const std::vector<size_t>& idx, float v) { flush(); _data[flatIndex(idx)] = v; }
 
 Device CPUImpl::device() const { return Device::CPU; }
 
@@ -162,11 +162,11 @@ void CPUImpl::apply(const Op& op) {
     }
 }
 
-std::unique_ptr<TensorImpl> CPUImpl::matmul(const TensorImpl& b) {
+std::unique_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
   flush();
 
   // TODO: Broadcasting
-  auto other = dynamic_cast<const CPUImpl*>(&b);
+  auto other = dynamic_cast<CPUImpl*>(&b);
   if (!other) {
     throw std::runtime_error("CPUImpl::matmul: expected CPUImpl");
   }

@@ -209,9 +209,11 @@ void launch_dotprod(float* a, float* b, float* res, size_t N) {
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-std::unique_ptr<TensorImpl> CUDAImpl::matmul(const TensorImpl& b) {
+std::unique_ptr<TensorImpl> CUDAImpl::matmul(TensorImpl& b) {
+  flush();
+
   // TODO: Broadcasting
-  auto other = dynamic_cast<const CUDAImpl*>(&b);
+  auto other = dynamic_cast<CUDAImpl*>(&b);
   if (!other) {
     throw std::runtime_error("CUDAImpl::matmul: expected CUDAImpl");
   }
