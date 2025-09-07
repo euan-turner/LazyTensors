@@ -56,12 +56,8 @@ void launch_elemwise_binop(float* a, float* b, size_t N, BinOp op) {
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-// Initial implementation - just naively dispatch every op immediately
-// All operations applied in place
-// TODO:
-// 1. Buffer ops as much as possible, then naive dispatch when necessary
-// 2. Implement kernel fusions
-void CUDAImpl::apply(const Op& op) {
+
+void CUDAImpl::_apply(const Op& op) {
     switch (op.type) {
         case OpType::SCAL_ADD: {
             auto p = std::get<ScalParams>(op.params);

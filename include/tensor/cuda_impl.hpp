@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <deque>
 #include "tensor/cpu_impl.hpp"
 #include "tensor/tensor_impl.hpp"
 #include "tensor/tensor_shape.hpp"
@@ -12,6 +13,9 @@ namespace tensor {
 class CUDAImpl final : public TensorImpl {
     private:
         float* _data;
+        std::deque<Op> op_buffer;
+
+        void _apply(const Op& op); // no buffering
 
     public:
         explicit CUDAImpl(const std::shared_ptr<TensorShape> shape);
@@ -36,7 +40,7 @@ class CUDAImpl final : public TensorImpl {
 
         // --- In-place / fusible elementwise ops ---
         // Single entrypoint for all buffered/fusible ops
-        void apply(const Op& op) override;
+        void apply(const Op& op) override; // buffering
 
         std::unique_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const override;
 

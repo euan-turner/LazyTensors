@@ -106,6 +106,33 @@ std::unique_ptr<TensorImpl> CUDAImpl::mean(int axis, bool keepdim) {
 
 std::unique_ptr<TensorImpl> CUDAImpl::transpose(const std::vector<size_t>& axes) const {}
 
-void CUDAImpl::flush() {}
+void CUDAImpl::apply(const Op& op) {
+  op_buffer.push_back(op);
+  // switch (op.type) {
+  //   case OpType::SCAL_ADD:
+  //   case OpType::SCAL_SUB:
+  //   case OpType::SCAL_MUL:
+  //   case OpType::SCAL_DIV:
+  //   case OpType::EXP:
+  //   case OpType::LOG:
+  //   case OpType::CLAMP:
+  //   case OpType::BIN_ADD:
+  //   case OpType::BIN_SUB:
+  //   case OpType::BIN_MUL:
+  //   case OpType::BIN_DIV:
+  //     _apply(op);
+  //     break;
+  //   default:
+  //     throw std::runtime_error("CUDAImpl::apply: unsupported OpType");
+  // }
+}
+
+// TODO: Fuse ops
+void CUDAImpl::flush() {
+  for (auto& op : op_buffer) {
+    _apply(op);
+  }
+  op_buffer.clear();
+}
 
 }

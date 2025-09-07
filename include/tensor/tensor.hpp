@@ -192,19 +192,19 @@ class Tensor {
         // ---- out-of-place ops (thin wrappers over clone()+in-place) ----
 
         // Element-wise ops, implicitly broadcasts
-        Tensor add(const Tensor& other) const      { Tensor out = clone(); out.add_(other); return out; }
-        Tensor sub(const Tensor& other) const      { Tensor out = clone(); out.sub_(other); return out; }
-        Tensor mul(const Tensor& other) const      { Tensor out = clone(); out.mul_(other); return out; }
-        Tensor div(const Tensor& other) const      { Tensor out = clone(); out.div_(other); return out; }
+        Tensor add(const Tensor& other) const      { _impl->flush(); Tensor out = clone(); out.add_(other); return out; }
+        Tensor sub(const Tensor& other) const      { _impl->flush(); Tensor out = clone(); out.sub_(other); return out; }
+        Tensor mul(const Tensor& other) const      { _impl->flush(); Tensor out = clone(); out.mul_(other); return out; }
+        Tensor div(const Tensor& other) const      { _impl->flush(); Tensor out = clone(); out.div_(other); return out; }
 
         // Scalar ops
-        Tensor add(float s) const              { Tensor out = clone(); out.add_(s); return out; }
-        Tensor mul(float s) const              { Tensor out = clone(); out.mul_(s); return out; }
-        Tensor sub(float s) const              { Tensor out = clone(); out.sub_(s); return out; }
-        Tensor div(float s) const              { Tensor out = clone(); out.div_(s); return out; }
-        Tensor exp() const                     { Tensor out = clone(); out.exp_(); return out; }
-        Tensor log() const                     { Tensor out = clone(); out.log_(); return out; }
-        Tensor clamp(float lo, float hi) const { Tensor out = clone(); out.clamp_(lo,hi); return out; }
+        Tensor add(float s) const              { _impl->flush(); Tensor out = clone(); out.add_(s); return out; }
+        Tensor mul(float s) const              { _impl->flush(); Tensor out = clone(); out.mul_(s); return out; }
+        Tensor sub(float s) const              { _impl->flush(); Tensor out = clone(); out.sub_(s); return out; }
+        Tensor div(float s) const              { _impl->flush(); Tensor out = clone(); out.div_(s); return out; }
+        Tensor exp() const                     { _impl->flush(); Tensor out = clone(); out.exp_(); return out; }
+        Tensor log() const                     { _impl->flush(); Tensor out = clone(); out.log_(); return out; }
+        Tensor clamp(float lo, float hi) const { _impl->flush(); Tensor out = clone(); out.clamp_(lo,hi); return out; }
 
         // Matrix multiplication, implicitly broadcasts, only out-of-place
         Tensor matmul(const Tensor& other) const;
