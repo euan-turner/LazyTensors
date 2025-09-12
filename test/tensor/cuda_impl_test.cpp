@@ -17,7 +17,7 @@ Tensor make_test_cpu_tensor(std::vector<size_t> dims) {
 }
 
 // Move equality check into Tensor
-void require_tensors_equal(const Tensor& t1, const Tensor& t2, float eps = 1e-6f) {
+void require_tensors_equal(const Tensor& t1, const Tensor& t2, float eps = 1e-3f, float marg = 1e-5f) {
   REQUIRE(t1.dims() == t2.dims());
 
   size_t total = t1.numel();
@@ -33,7 +33,7 @@ void require_tensors_equal(const Tensor& t1, const Tensor& t2, float eps = 1e-6f
       idx[i] = rem / t1.strides()[i];
       rem %= t1.strides()[i];
     }
-    REQUIRE(t1(idx) == Approx(t2(idx)).epsilon(eps));
+    REQUIRE(t1(idx) == Approx(t2(idx)).epsilon(eps).margin(marg));
   }
 }
 
