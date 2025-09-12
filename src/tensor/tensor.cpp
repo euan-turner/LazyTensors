@@ -21,7 +21,7 @@ void Tensor::to(Device target) {
   auto cpu_tensor = _impl->to_cpu();
   switch (target) {
     case Device::CPU:
-      _impl = std::move(cpu_tensor);
+      _impl = cpu_tensor;
       break;
     case Device::CUDA:
       _impl = CUDAImpl::from_cpu(*cpu_tensor.get());
@@ -33,7 +33,7 @@ void Tensor::to(Device target) {
 
 Tensor Tensor::clone() const {
   std::shared_ptr<TensorImpl> new_impl = _impl->clone();
-  return Tensor(std::move(new_impl));
+  return Tensor(new_impl);
 }
 
 float Tensor::at(std::vector<size_t> indices) const {
@@ -147,17 +147,23 @@ size_t Tensor::length() const {
 Tensor Tensor::matmul(const Tensor& other) const {
   // TODO: Validation checks on shapes
   std::shared_ptr<TensorImpl> res_impl = _impl->matmul(*other._impl);
-  return Tensor(std::move(res_impl));
+  return Tensor(res_impl);
+}
+
+Tensor Tensor::relu_back(const Tensor& gradients) const {
+  // TODO: Validation checks on shapes
+  std::shared_ptr<TensorImpl> res_impl = _impl->relu_back(*gradients._impl);
+  return Tensor(res_impl);
 }
 
 Tensor Tensor::sum(int axis, bool keepdim) const {
   std::shared_ptr<TensorImpl> res_impl = _impl->sum(axis, keepdim);
-  return Tensor(std::move(res_impl));
+  return Tensor(res_impl);
 }
 
 Tensor Tensor::mean(int axis, bool keepdim) const {
   std::shared_ptr<TensorImpl> res_impl = _impl->mean(axis, keepdim);
-  return Tensor(std::move(res_impl));
+  return Tensor(res_impl);
 }
 
 Tensor Tensor::broadcast_to(const TensorShape& target_shape) const {}

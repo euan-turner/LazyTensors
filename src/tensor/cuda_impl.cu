@@ -40,7 +40,7 @@ void launch_elemwise_unop(float* a, size_t N, UnOp op) {
 }
 
 template <typename BinOp>
-__global__ void elemwise_binop_kernel(float* a, float* b, size_t N, BinOp op) {
+__global__ void elemwise_binop_kernel_ip(float* a, float* b, size_t N, BinOp op) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < N) {
     a[idx] = op(a[idx], b[idx]);
@@ -48,10 +48,27 @@ __global__ void elemwise_binop_kernel(float* a, float* b, size_t N, BinOp op) {
 }
 
 template <typename BinOp>
-void launch_elemwise_binop(float* a, float* b, size_t N, BinOp op) {
+void launch_elemwise_binop_ip(float* a, float* b, size_t N, BinOp op) {
   size_t BLOCK_SIZE = 256;
   size_t GRID_SIZE = CEIL_DIV(N, BLOCK_SIZE);
-  elemwise_binop_kernel<<<GRID_SIZE, BLOCK_SIZE>>>(a, b, N, op);
+  elemwise_binop_kernel_ip<<<GRID_SIZE, BLOCK_SIZE>>>(a, b, N, op);
+  CUDA_CHECK(cudaGetLastError());
+  CUDA_CHECK(cudaDeviceSynchronize());
+}
+
+template <typename BinOp>
+__global__ void elemwise_binop_kernel(float* a, float* b, float* c, size_t N, BinOp op) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx < N) {
+    c[idx] = op(a[idx], b[idx]);
+  }
+}
+
+template <typename BinOp>
+void launch_elemwise_binop(float* a, float* b, float* c, size_t N, BinOp op) {
+  size_t BLOCK_SIZE = 256;
+  size_t GRID_SIZE = CEIL_DIV(N, BLOCK_SIZE);
+  elemwise_binop_kernel<<<GRID_SIZE, BLOCK_SIZE>>>(a, b, c, N, op);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 }
@@ -100,25 +117,25 @@ void CUDAImpl::_apply(const Op& op) {
         case OpType::BIN_ADD: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_ADD expected CUDAImpl");
-            launch_elemwise_binop(_data, other->_data, numel(), AddOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), AddOp{});
             break;
         }
         case OpType::BIN_SUB: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_SUB expected CUDAImpl");
-            launch_elemwise_binop(_data, other->_data, numel(), SubOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), SubOp{});
             break;
         }
         case OpType::BIN_MUL: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_MUL expected CUDAImpl");
-            launch_elemwise_binop(_data, other->_data, numel(), MulOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), MulOp{});
             break;
         }
         case OpType::BIN_DIV: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_DIV expected CUDAImpl");
-            launch_elemwise_binop(_data, other->_data, numel(), DivOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), DivOp{});
             break;
         }
 
@@ -272,4 +289,11 @@ std::shared_ptr<TensorImpl> CUDAImpl::matmul(TensorImpl& b) {
   }
 }
 
+std::shared_ptr<TensorImpl> CUDAImpl::relu_back(TensorImpl& gradients) {
+  flush();
+  auto res = std::make_shared<CUDAImpl>(_shape);
+  auto grads = dynamic_cast<CUDAImpl&>(gradients);
+  launch_elemwise_binop(_data, grads._data, res->_data, numel(), ReLUBackOp{});
+  return res;
+}
 }

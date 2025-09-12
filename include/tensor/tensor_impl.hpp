@@ -89,6 +89,8 @@ class TensorImpl {
 
     virtual std::shared_ptr<TensorImpl> sum(int axis, bool keepdim) = 0;
     virtual std::shared_ptr<TensorImpl> mean(int axis, bool keepdim) = 0;
+
+    virtual std::shared_ptr<TensorImpl> relu_back(TensorImpl& gradients) = 0;
 };
 
 } // namespace tensor

@@ -27,6 +27,7 @@ DEFINE_BINARY_OP(AddOp, x + y)
 DEFINE_BINARY_OP(SubOp, x - y)
 DEFINE_BINARY_OP(MulOp, x * y)
 DEFINE_BINARY_OP(DivOp, x / y)
+DEFINE_BINARY_OP(ReLUBackOp, x > 0.0f ? y : 0.0f; ) // x is input, y is grad
 
 
 

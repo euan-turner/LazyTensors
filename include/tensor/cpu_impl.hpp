@@ -57,6 +57,8 @@ class CPUImpl final : public TensorImpl {
          */
         std::shared_ptr<TensorImpl> sum(int axis, bool keepdim) override;
         std::shared_ptr<TensorImpl> mean(int axis, bool keepdim) override;
+
+        std::shared_ptr<TensorImpl> relu_back(TensorImpl& gradients) override;
 };
 
 }

@@ -123,6 +123,7 @@ endfunction()
 add_module(tensor)
 add_module(init)
 add_module(loss)
+add_module(module)
 
 # -----------------------
 # --- Define tests ---
@@ -130,3 +131,4 @@ add_module(loss)
 add_module_test(tensor init)
 add_module_test(init)
 add_module_test(loss)
+add_module_test(module)

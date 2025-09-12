@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include "tensor/tensor_impl.hpp"
 #include "tensor/tensor_shape.hpp"
 
@@ -186,6 +187,10 @@ class Tensor {
         Tensor log() const                     { _impl->flush(); Tensor out = clone(); out.log_(); return out; }
         Tensor clamp(float lo, float hi) const { _impl->flush(); Tensor out = clone(); out.clamp_(lo,hi); return out; }
 
+        // Activations
+        Tensor relu() const                    { return clamp(0.0f, std::numeric_limits<float>::infinity()); }
+        Tensor relu_back(const Tensor& gradients) const;
+
         // Matrix multiplication, implicitly broadcasts, only out-of-place
         Tensor matmul(const Tensor& other) const;
 
@@ -198,7 +203,6 @@ class Tensor {
         Tensor expand_as(const Tensor& other) const;
 
         // ---- in-place ops (backbone for perf / chaining) ----
-        // return *this
 
         // Element-wise ops, implicitly broadcasts
         Tensor& add_(const Tensor& other);
@@ -211,7 +215,6 @@ class Tensor {
         Tensor& mul_(float s);
         Tensor& sub_(float s);
         Tensor& div_(float s);
-
         Tensor& exp_();
         Tensor& log_();
         Tensor& clamp_(float lo, float hi);
