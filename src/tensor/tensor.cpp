@@ -5,9 +5,9 @@
 
 namespace tensor {
 
-Tensor::Tensor(std::unique_ptr<TensorImpl> impl) {
+Tensor::Tensor(std::shared_ptr<TensorImpl> impl) {
   _shape = impl->shape();
-  _impl = std::move(impl);
+  _impl = impl;
 }
 
 Tensor::Tensor(std::vector<size_t> dims, Device device) : _device(device) {
@@ -32,7 +32,7 @@ void Tensor::to(Device target) {
 }
 
 Tensor Tensor::clone() const {
-  std::unique_ptr<TensorImpl> new_impl = _impl->clone();
+  std::shared_ptr<TensorImpl> new_impl = _impl->clone();
   return Tensor(std::move(new_impl));
 }
 
@@ -146,17 +146,17 @@ size_t Tensor::length() const {
 
 Tensor Tensor::matmul(const Tensor& other) const {
   // TODO: Validation checks on shapes
-  std::unique_ptr<TensorImpl> res_impl = _impl->matmul(*other._impl);
+  std::shared_ptr<TensorImpl> res_impl = _impl->matmul(*other._impl);
   return Tensor(std::move(res_impl));
 }
 
 Tensor Tensor::sum(int axis, bool keepdim) const {
-  std::unique_ptr<TensorImpl> res_impl = _impl->sum(axis, keepdim);
+  std::shared_ptr<TensorImpl> res_impl = _impl->sum(axis, keepdim);
   return Tensor(std::move(res_impl));
 }
 
 Tensor Tensor::mean(int axis, bool keepdim) const {
-  std::unique_ptr<TensorImpl> res_impl = _impl->mean(axis, keepdim);
+  std::shared_ptr<TensorImpl> res_impl = _impl->mean(axis, keepdim);
   return Tensor(std::move(res_impl));
 }
 

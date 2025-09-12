@@ -17,7 +17,7 @@ namespace tensor {
 class Tensor {
     private:
         std::shared_ptr<TensorShape> _shape;
-        std::unique_ptr<TensorImpl> _impl;
+        std::shared_ptr<TensorImpl> _impl;
         Device _device;
 
         /**
@@ -25,7 +25,7 @@ class Tensor {
          * 
          * @param impl TensorImpl with backing memory already allocated
          */
-        explicit Tensor(std::unique_ptr<TensorImpl> impl);
+        explicit Tensor(std::shared_ptr<TensorImpl> impl);
 
 
     public:
@@ -88,26 +88,6 @@ class Tensor {
          * @param target Target device
          */
         void to(Device target);
-
-        /**
-         * @brief Construct a Tensor by copying from this instance
-         * Copies all underlying memory and state
-         * 
-         * @param other 
-         */
-        Tensor(const Tensor& other)
-            : _shape(other._shape)
-            , _impl(other._impl ? other._impl->clone() : nullptr)
-            , _device(other._device) {}
-        
-        Tensor& operator=(const Tensor& other) {
-            if (this != &other) {
-                _shape = other._shape;
-                _impl = other._impl ? other._impl->clone() : nullptr;
-                _device = other._device;
-            }
-            return *this;
-        }
 
         ~Tensor() = default;
 

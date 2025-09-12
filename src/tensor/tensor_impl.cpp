@@ -21,13 +21,13 @@ size_t TensorImpl::flatIndex(const std::vector<size_t>& indices) const {
     return offset;
 }
 
-std::unique_ptr<TensorImpl> TensorImpl::create_impl(Device device, std::shared_ptr<TensorShape> shape) {
+std::shared_ptr<TensorImpl> TensorImpl::create_impl(Device device, std::shared_ptr<TensorShape> shape) {
       switch (device) {
         case Device::CPU:
-          return std::make_unique<CPUImpl>(shape);
+          return std::make_shared<CPUImpl>(shape);
 #ifdef CUDA_AVAILABLE
         case Device::CUDA:
-          return std::make_unique<CUDAImpl>(shape);
+          return std::make_shared<CUDAImpl>(shape);
 #endif
         default:
           throw std::runtime_error("Unknown device");

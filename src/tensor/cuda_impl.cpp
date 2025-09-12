@@ -74,37 +74,37 @@ void CUDAImpl::set(const std::vector<size_t> &idx, float v) {
 
 Device CUDAImpl::device() const { return Device::CUDA; }
 
-std::unique_ptr<TensorImpl> CUDAImpl::clone() const {
-  auto other = std::make_unique<CUDAImpl>(_shape);
+std::shared_ptr<TensorImpl> CUDAImpl::clone() const {
+  auto other = std::make_shared<CUDAImpl>(_shape);
   CUDA_CHECK(cudaMemcpy(other->_data, _data, numel() * sizeof(float), cudaMemcpyDeviceToDevice));
   return other;
 }
 
-std::unique_ptr<CPUImpl> CUDAImpl::to_cpu() const { 
-  auto cpu_tensor = std::make_unique<CPUImpl>(_shape);
+std::shared_ptr<CPUImpl> CUDAImpl::to_cpu() const { 
+  auto cpu_tensor = std::make_shared<CPUImpl>(_shape);
   CUDA_CHECK(cudaMemcpy(cpu_tensor->raw_data(), _data, numel() * sizeof(float), cudaMemcpyDeviceToHost));
   return cpu_tensor;
 }
 
-std::unique_ptr<TensorImpl> CUDAImpl::from_cpu(const CPUImpl& cpu_tensor) {
-  auto gpu_tensor = std::make_unique<CUDAImpl>(cpu_tensor.shape());
+std::shared_ptr<TensorImpl> CUDAImpl::from_cpu(const CPUImpl& cpu_tensor) {
+  auto gpu_tensor = std::make_shared<CUDAImpl>(cpu_tensor.shape());
   CUDA_CHECK(cudaMemcpy(gpu_tensor->_data, cpu_tensor.raw_data(), cpu_tensor.numel() * sizeof(float), cudaMemcpyHostToDevice));
   return gpu_tensor;
 }
 
 
 
-std::unique_ptr<TensorImpl> CUDAImpl::sum(int axis, bool keepdim) {
+std::shared_ptr<TensorImpl> CUDAImpl::sum(int axis, bool keepdim) {
   flush();
 
 }
 
-std::unique_ptr<TensorImpl> CUDAImpl::mean(int axis, bool keepdim) {
+std::shared_ptr<TensorImpl> CUDAImpl::mean(int axis, bool keepdim) {
   flush();
 
 }
 
-std::unique_ptr<TensorImpl> CUDAImpl::transpose(const std::vector<size_t>& axes) const {}
+std::shared_ptr<TensorImpl> CUDAImpl::transpose(const std::vector<size_t>& axes) const {}
 
 void CUDAImpl::apply(const Op& op) {
   op_buffer.push_back(op);

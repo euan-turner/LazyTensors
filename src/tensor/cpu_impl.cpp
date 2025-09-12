@@ -66,19 +66,18 @@ void CPUImpl::set(const std::vector<size_t>& idx, float v) { flush(); _data[flat
 
 Device CPUImpl::device() const { return Device::CPU; }
 
-std::unique_ptr<TensorImpl> CPUImpl::clone() const { 
-  auto other = std::make_unique<CPUImpl>(_shape);
+std::shared_ptr<TensorImpl> CPUImpl::clone() const { 
+  auto other = std::make_shared<CPUImpl>(_shape);
   std::memcpy(other->_data, _data, numel() * sizeof(float));
   return other;
 }
 
-// TODO
-std::unique_ptr<CPUImpl> CPUImpl::to_cpu() const {
-  return std::make_unique<CPUImpl>(*this);
+std::shared_ptr<CPUImpl> CPUImpl::to_cpu() const {
+  return std::make_shared<CPUImpl>(*this);
 }
 
-std::unique_ptr<TensorImpl> CPUImpl::from_cpu(const CPUImpl& cpu_tensor) {
-  return std::make_unique<CPUImpl>(cpu_tensor);
+std::shared_ptr<TensorImpl> CPUImpl::from_cpu(const CPUImpl& cpu_tensor) {
+  return std::make_shared<CPUImpl>(cpu_tensor);
 }
 
 // Initial implementation - just naively dispatch every op immediately
@@ -162,7 +161,7 @@ void CPUImpl::apply(const Op& op) {
     }
 }
 
-std::unique_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
+std::shared_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
   flush();
 
   // TODO: Broadcasting
@@ -181,7 +180,7 @@ std::unique_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
       }
 
       size_t rows = a_dims[0];
-      auto result = std::make_unique<CPUImpl>(createShape(std::vector<size_t>{rows}));
+      auto result = std::make_shared<CPUImpl>(createShape(std::vector<size_t>{rows}));
 
       for (size_t i = 0; i < rows; ++i) {
           float sum = 0.0f;
@@ -203,7 +202,7 @@ std::unique_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
       size_t cols = b_dims[1];
       size_t inner = a_dims[1];
 
-      auto result = std::make_unique<CPUImpl>(createShape(std::vector<size_t>{rows, cols}));
+      auto result = std::make_shared<CPUImpl>(createShape(std::vector<size_t>{rows, cols}));
 
       for (size_t i = 0; i < rows; ++i) {
           for (size_t j = 0; j < cols; ++j) {
@@ -224,7 +223,7 @@ std::unique_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
       }
 
       size_t cols = b_dims[1];
-      auto result = std::make_unique<CPUImpl>(createShape(std::vector<size_t>{cols}));
+      auto result = std::make_shared<CPUImpl>(createShape(std::vector<size_t>{cols}));
 
       for (size_t j = 0; j < cols; ++j) {
           float sum = 0.0f;
@@ -244,7 +243,7 @@ std::unique_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
       size_t len = a_dims[0];
 
       // Scalar result
-      auto result = std::make_unique<CPUImpl>(createShape(std::vector<size_t>{1}));
+      auto result = std::make_shared<CPUImpl>(createShape(std::vector<size_t>{1}));
 
       float v = 0.0f;
       for (size_t i = 0; i < len; ++i) {
@@ -257,7 +256,7 @@ std::unique_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
 
 }
 
-std::unique_ptr<TensorImpl> CPUImpl::sum(int axis, bool keepdim) { 
+std::shared_ptr<TensorImpl> CPUImpl::sum(int axis, bool keepdim) { 
   flush();
 
   std::vector<size_t> res_dims = _shape->dims;
@@ -275,7 +274,7 @@ std::unique_ptr<TensorImpl> CPUImpl::sum(int axis, bool keepdim) {
     }
   }
 
-  auto result = std::make_unique<CPUImpl>(createShape(res_dims));
+  auto result = std::make_shared<CPUImpl>(createShape(res_dims));
 
   if (axis == -1) {
     float s = 0.0f;
@@ -308,10 +307,10 @@ std::unique_ptr<TensorImpl> CPUImpl::sum(int axis, bool keepdim) {
   return result;
 }
 
-std::unique_ptr<TensorImpl> CPUImpl::mean(int axis, bool keepdim) { 
+std::shared_ptr<TensorImpl> CPUImpl::mean(int axis, bool keepdim) { 
   flush();
 
-  std::unique_ptr<TensorImpl> result = sum(axis, keepdim);
+  std::shared_ptr<TensorImpl> result = sum(axis, keepdim);
   CPUImpl* cpu = dynamic_cast<CPUImpl*>(result.get());
   float n;
   if (axis == -1) {
@@ -325,7 +324,7 @@ std::unique_ptr<TensorImpl> CPUImpl::mean(int axis, bool keepdim) {
   return result;
 }
 
-std::unique_ptr<TensorImpl> CPUImpl::transpose(const std::vector<size_t>& axes) const { 
+std::shared_ptr<TensorImpl> CPUImpl::transpose(const std::vector<size_t>& axes) const { 
 
 }
 

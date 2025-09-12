@@ -205,7 +205,7 @@ void launch_dotprod(float* a, float* b, float* res, size_t N) {
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 
-std::unique_ptr<TensorImpl> CUDAImpl::matmul(TensorImpl& b) {
+std::shared_ptr<TensorImpl> CUDAImpl::matmul(TensorImpl& b) {
   flush();
 
   // TODO: Broadcasting

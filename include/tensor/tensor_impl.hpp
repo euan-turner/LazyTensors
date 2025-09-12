@@ -13,7 +13,7 @@ class CPUImpl;
 /**
  * @brief Abstract backend implementation of a Tensor.
  * 
- * Each Tensor holds a unique_ptr<TensorImpl> which encapsulates:
+ * Each Tensor holds a shared_ptr<TensorImpl> which encapsulates:
  *  - The raw memory buffer
  *  - Device-specific execution (CPU / CUDA)
  *  - Primitive ops (elementwise, matmul, reductions, etc.)
@@ -66,29 +66,29 @@ class TensorImpl {
 
     // --- Device info ---
     virtual Device device() const = 0;
-    static std::unique_ptr<TensorImpl> create_impl(Device device, std::shared_ptr<TensorShape> shape);
+    static std::shared_ptr<TensorImpl> create_impl(Device device, std::shared_ptr<TensorShape> shape);
 
     // --- Core cloning / transfers ---
-    virtual std::unique_ptr<TensorImpl> clone() const = 0;
-    virtual std::unique_ptr<CPUImpl> to_cpu() const = 0;
+    virtual std::shared_ptr<TensorImpl> clone() const = 0;
+    virtual std::shared_ptr<CPUImpl> to_cpu() const = 0;
     // Each subclass must implement
-    // static std::unique_ptr<TensorImpl> from_cpu(const CPUImpl& cpu_tensor)
+    // static std::shared_ptr<TensorImpl> from_cpu(const CPUImpl& cpu_tensor)
 
     // --- In-place / fusible elementwise ops ---
     // Single entrypoint for all buffered/fusible ops
     virtual void apply(const Op& op) = 0;
     // Creates a new view of the same data
-    virtual std::unique_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const = 0;
+    virtual std::shared_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const = 0;
 
     // --- Flush buffered operations ---
     virtual void flush() = 0;
 
     // --- Out-of-place operations ---
     // Non-const as they will need to flush first
-    virtual std::unique_ptr<TensorImpl> matmul(TensorImpl& b) = 0;
+    virtual std::shared_ptr<TensorImpl> matmul(TensorImpl& b) = 0;
 
-    virtual std::unique_ptr<TensorImpl> sum(int axis, bool keepdim) = 0;
-    virtual std::unique_ptr<TensorImpl> mean(int axis, bool keepdim) = 0;
+    virtual std::shared_ptr<TensorImpl> sum(int axis, bool keepdim) = 0;
+    virtual std::shared_ptr<TensorImpl> mean(int axis, bool keepdim) = 0;
 };
 
 } // namespace tensor
