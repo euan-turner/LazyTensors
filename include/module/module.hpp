@@ -24,10 +24,14 @@ public:
         return computeBackward(grad_output);
     }
 
-    virtual bool hasTrainableParameters() = 0;
+    virtual bool hasTrainableParameters() const = 0;
 
     std::unordered_map<std::string, std::shared_ptr<Tensor>>& getParameters() { return parameters_; }
+
+    // gradients must match up to trainable parameters by name
     std::unordered_map<std::string, std::shared_ptr<Tensor>>& getGradients() { return gradients_; }
+    // sub-class should modify if any parameters are not trainable
+    virtual const std::unordered_map<std::string, std::shared_ptr<Tensor>>& getTrainableParameters() { return parameters_; }
 
 protected:
     // Hook for subclasses to implement forward computation and cache required tensors

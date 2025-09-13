@@ -8,7 +8,7 @@ namespace module {
 
 class ReLU : public Module {
   public:
-    bool hasTrainableParameters() { return false; }
+    bool hasTrainableParameters() const override { return false; }
   
   protected:
     std::shared_ptr<Tensor> computeForward(const std::shared_ptr<Tensor>& input);

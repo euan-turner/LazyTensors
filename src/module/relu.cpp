@@ -7,7 +7,7 @@ namespace module {
 std::shared_ptr<Tensor> ReLU::computeForward(const std::shared_ptr<Tensor>& input) {
   Tensor relu = input->relu();
   auto res = std::make_shared<Tensor>(relu);
-  cache("input", res);
+  cache("input", input);
   return res;
 }
 
