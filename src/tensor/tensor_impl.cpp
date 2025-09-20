@@ -33,4 +33,21 @@ std::shared_ptr<TensorImpl> TensorImpl::create_impl(Device device, std::shared_p
           throw std::runtime_error("Unknown device");
       }
     }
+
+void TensorImpl::transpose(const std::vector<size_t>& axes) {
+  if (axes.size() != _shape->strides.size()) {
+    throw std::runtime_error("Insufficient number of axes provided");
+  }
+
+  std::vector<size_t> new_dims(axes.size());
+  for (int i = 0; i < axes.size(); ++i) {
+    new_dims[i] = _shape->dims[axes[i]];
+  }
+
+  // Replace the shape that this Tensor, and the TensorImpl point at
+  // if this impl was cloned, previous version will keep using the old stride pattern,
+  // if they are still referenced somewhere
+  _shape = _shape->transpose(axes);
+}
+
 }

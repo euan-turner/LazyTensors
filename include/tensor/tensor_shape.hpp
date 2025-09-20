@@ -14,6 +14,8 @@ struct TensorShape {
 
     TensorShape(size_t numel_, std::vector<size_t> dims_, std::vector<size_t> strides_)
         : numel(numel_), dims(std::move(dims_)), strides(std::move(strides_)) {}
+
+    std::shared_ptr<TensorShape> transpose(const std::vector<size_t>& axes); // return a new TensorShape
 };
 
 // Helper to create TensorShape from dimensions

@@ -77,8 +77,9 @@ class TensorImpl {
     // --- In-place / fusible elementwise ops ---
     // Single entrypoint for all buffered/fusible ops
     virtual void apply(const Op& op) = 0;
+
     // Creates a new view of the same data
-    virtual std::shared_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const = 0;
+    void transpose(const std::vector<size_t>& axes);
 
     // --- Flush buffered operations ---
     virtual void flush() = 0;

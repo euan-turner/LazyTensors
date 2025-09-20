@@ -187,6 +187,9 @@ class Tensor {
         Tensor log() const                     { _impl->flush(); Tensor out = clone(); out.log_(); return out; }
         Tensor clamp(float lo, float hi) const { _impl->flush(); Tensor out = clone(); out.clamp_(lo,hi); return out; }
 
+        Tensor transpose(std::vector<size_t> axes) const { _impl->flush(); Tensor out = clone(); out.transpose_(axes); return out; }
+        Tensor transpose() const { _impl->flush(); Tensor out = clone(); out.transpose_(); return out; }
+
         // Activations
         Tensor relu() const                    { return clamp(0.0f, std::numeric_limits<float>::infinity()); }
         Tensor relu_back(const Tensor& gradients) const;
@@ -219,7 +222,12 @@ class Tensor {
         Tensor& log_();
         Tensor& clamp_(float lo, float hi);
 
-        // Transpose - in-place by updating the view by strides
+        /**
+         * @brief Transpose in-place by updating strides
+         * 
+         * @param axes Axes ordering after transpose
+         * @return Tensor& 
+         */
         Tensor& transpose_(std::vector<size_t> axes);
         Tensor& transpose_();
 };

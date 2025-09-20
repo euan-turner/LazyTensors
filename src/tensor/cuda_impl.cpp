@@ -96,15 +96,13 @@ std::shared_ptr<TensorImpl> CUDAImpl::from_cpu(const CPUImpl& cpu_tensor) {
 
 std::shared_ptr<TensorImpl> CUDAImpl::sum(int axis, bool keepdim) {
   flush();
-
+  throw std::runtime_error("Not implemented yet");
 }
 
 std::shared_ptr<TensorImpl> CUDAImpl::mean(int axis, bool keepdim) {
   flush();
-
+  throw std::runtime_error("Not implemented yet");
 }
-
-std::shared_ptr<TensorImpl> CUDAImpl::transpose(const std::vector<size_t>& axes) const {}
 
 void CUDAImpl::apply(const Op& op) {
   op_buffer.push_back(op);

@@ -254,6 +254,7 @@ std::shared_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
       return result;
   }
 
+  throw std::runtime_error("Dimensions invalid");
 }
 
 std::shared_ptr<TensorImpl> CPUImpl::sum(int axis, bool keepdim) { 
@@ -332,10 +333,6 @@ std::shared_ptr<TensorImpl> CPUImpl::relu_back(TensorImpl& gradients) {
     res->_data[i] = _data[i] > 0.0f ? grads._data[i] : 0.0f;
   }
   return res;
-}
-
-std::shared_ptr<TensorImpl> CPUImpl::transpose(const std::vector<size_t>& axes) const { 
-
 }
 
 void CPUImpl::flush() {}

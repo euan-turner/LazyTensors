@@ -166,9 +166,13 @@ Tensor Tensor::mean(int axis, bool keepdim) const {
   return Tensor(res_impl);
 }
 
-Tensor Tensor::broadcast_to(const TensorShape& target_shape) const {}
+Tensor Tensor::broadcast_to(const TensorShape& target_shape) const {
+  throw std::runtime_error("Not implemented yet");
+}
 
-Tensor Tensor::expand_as(const Tensor& other) const {}
+Tensor Tensor::expand_as(const Tensor& other) const {
+  throw std::runtime_error("Not implemented yet");
+}
 
 Tensor& Tensor::add_(const Tensor& other) {
   Op op {OpType::BIN_ADD, std::monostate(), other._impl.get()};
@@ -236,8 +240,17 @@ Tensor& Tensor::clamp_(float lo, float hi) {
   return *this;
 }
 
-Tensor& Tensor::transpose_(std::vector<size_t> axes) {}
+Tensor& Tensor::transpose_(std::vector<size_t> axes) {
+  _impl->transpose(axes);
+  _shape = _impl->shape();
+  return *this;
+}
 
-Tensor& Tensor::transpose_() {}
+Tensor& Tensor::transpose_() {
+  if (!isMatrix()) {
+    throw std::runtime_error("Not a matrix");
+  }
+  return transpose_({1, 0});
+}
 
 } // namespace tensor

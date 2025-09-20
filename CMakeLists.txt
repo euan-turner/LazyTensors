@@ -99,7 +99,7 @@ function(add_module_test name)
             ${TEST_SOURCES}
             test/catch_amalgamated.cpp
         )
-        target_include_directories(${name}Tests PRIVATE include)
+    target_include_directories(${name}Tests PRIVATE include test)
 
         # Gather dependencies (default: module itself + tensor)
         set(default_deps ${name} tensor)

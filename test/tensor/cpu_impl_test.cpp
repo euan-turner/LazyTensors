@@ -3,7 +3,9 @@
 #include <catch_amalgamated.hpp>
 #include "tensor/tensor.hpp"
 #include "tensor/tensor_device.hpp"
+
 #include <vector>
+#include "tensor/test_helpers.hpp"
 
 using namespace tensor;
 
@@ -233,4 +235,60 @@ TEST_CASE("Tensor reductions (CPU)", "[Tensor][CPUImpl]") {
     REQUIRE(m(0) == Catch::Approx(2.0f));
     REQUIRE(m(1) == Catch::Approx(5.0f));
     }
+}
+
+TEST_CASE("Tensor transpose changes shapes", "[Tensor]") {
+    std::vector<size_t> dims = {16, 8};
+    Tensor a = make_test_cpu_tensor(dims);
+    Tensor b = make_test_cpu_tensor(dims);
+
+    REQUIRE_THROWS(a.matmul(b));
+
+    SECTION("Explicit axes") {
+        b.transpose_({1, 0});
+        REQUIRE(b.dim(0) == 8);
+        REQUIRE(b.dim(1) == 16);
+        Tensor res = a.matmul(b);
+        REQUIRE(res.dim(0) == 16);
+        REQUIRE(res.dim(1) == 16);
+    }
+
+    SECTION("Implicit axes") {
+        a.transpose_();
+        REQUIRE(a.dim(0) == 8);
+        REQUIRE(a.dim(1) == 16);
+        Tensor res = a.matmul(b);
+        REQUIRE(res.dim(0) == 8);
+        REQUIRE(res.dim(1) == 8);
+    }
+}
+
+TEST_CASE("Matrix multiplication after transpose returns correct values", "[Tensor][Transpose][Matmul]") {
+    // 2x3 matrix
+    Tensor a = Tensor::matrix(2, 3, Device::CPU);
+    a.set(0, 0, 1.0f); a.set(0, 1, 2.0f); a.set(0, 2, 3.0f);
+    a.set(1, 0, 4.0f); a.set(1, 1, 5.0f); a.set(1, 2, 6.0f);
+
+    // 2x3 matrix
+    Tensor b = Tensor::matrix(2, 3, Device::CPU);
+    b.set(0, 0, 7.0f);  b.set(0, 1, 8.0f);  b.set(0, 2, 9.0f);
+    b.set(1, 0, 10.0f); b.set(1, 1, 11.0f); b.set(1, 2, 12.0f);
+
+    // Transpose b to 3x2
+    b.transpose_();
+
+    // a (2x3) @ b^T (3x2) = c (2x2)
+    Tensor c = a.matmul(b);
+
+    // Expected result:
+    // c[0,0] = 1*7 + 2*8 + 3*9 = 7 + 16 + 27 = 50
+    // c[0,1] = 1*10 + 2*11 + 3*12 = 10 + 22 + 36 = 68
+    // c[1,0] = 4*7 + 5*8 + 6*9 = 28 + 40 + 54 = 122
+    // c[1,1] = 4*10 + 5*11 + 6*12 = 40 + 55 + 72 = 167
+    REQUIRE(c.rows() == 2);
+    REQUIRE(c.cols() == 2);
+    REQUIRE(c(0,0) == Approx(50.0f));
+    REQUIRE(c(0,1) == Approx(68.0f));
+    REQUIRE(c(1,0) == Approx(122.0f));
+    REQUIRE(c(1,1) == Approx(167.0f));
 }

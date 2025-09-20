@@ -42,8 +42,6 @@ class CUDAImpl final : public TensorImpl {
         // Single entrypoint for all buffered/fusible ops
         void apply(const Op& op) override; // buffering
 
-        std::shared_ptr<TensorImpl> transpose(const std::vector<size_t>& axes) const override;
-
         // --- Flush buffered operations ---
         void flush() override;
 
