@@ -26,7 +26,9 @@ std::shared_ptr<Tensor> Dense::computeForward(const std::shared_ptr<Tensor>& inp
       res.add_(*parameters_["biases"]);
       return std::make_shared<Tensor>(res);
     } else if (input->isMatrix()) {
-      throw std::runtime_error("Dense: Batched inputs requires Tensor transpose implementation");
+      Tensor res = parameters_["weights"]->matmul(input->transpose());
+      res.add_(*parameters_["biases"]);
+      return std::make_shared<Tensor>(res);
     }
   } else {
     throw std::runtime_error("Dense: Input must be a vector or matrix");
@@ -35,9 +37,13 @@ std::shared_ptr<Tensor> Dense::computeForward(const std::shared_ptr<Tensor>& inp
 
 std::shared_ptr<Tensor> Dense::computeBackward(const std::shared_ptr<Tensor>& grad_output) {
   if (get("input")->isVector()) {
-    throw std::runtime_error("Dense: Backward pass requires Tensor transpose"); 
-  } else{
-    throw std::runtime_error("Dense: Batched inputs requires Tensor transpose implementation");
+    // outer product of grad_output and input.T
+    gradients_.at("weights") = std::make_shared<Tensor>(grad_output->unsqueeze(1).matmul(get("input")->unsqueeze(0)));
+    gradients_.at("biases") = grad_output;
+
+  } else if (get("input")->isMatrix()) {
+    gradients_.at("weights") = std::make_shared<Tensor>(grad_output->transpose().matmul(*get("input")));
+    gradients_.at("biases") = std::make_shared<Tensor>(grad_output->sum(0));
   }
 }
 

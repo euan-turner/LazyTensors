@@ -187,9 +187,13 @@ class Tensor {
         Tensor log() const                     { _impl->flush(); Tensor out = clone(); out.log_(); return out; }
         Tensor clamp(float lo, float hi) const { _impl->flush(); Tensor out = clone(); out.clamp_(lo,hi); return out; }
 
-        Tensor transpose(std::vector<size_t> axes) const { _impl->flush(); Tensor out = clone(); out.transpose_(axes); return out; }
-        Tensor transpose() const { _impl->flush(); Tensor out = clone(); out.transpose_(); return out; }
+        Tensor transpose(std::vector<size_t> axes) const { Tensor out = clone(); out.transpose_(axes); return out; }
+        Tensor transpose() const { Tensor out = clone(); out.transpose_(); return out; }
 
+        // Insert a unitary dimension at axis
+        Tensor unsqueeze(size_t axis) const { Tensor out = clone(); out.unsqueeze_(axis); return out; }
+        Tensor squeeze(size_t axis) const { Tensor out = clone(); out.squeeze_(axis); return out; }
+        
         // Activations
         Tensor relu() const                    { return clamp(0.0f, std::numeric_limits<float>::infinity()); }
         Tensor relu_back(const Tensor& gradients) const;
@@ -230,6 +234,10 @@ class Tensor {
          */
         Tensor& transpose_(std::vector<size_t> axes);
         Tensor& transpose_();
+
+        // Insert a unitary dimension at axis
+        Tensor& unsqueeze_(size_t axis);
+        Tensor& squeeze_(size_t axis);
 };
 
 } // namespace tensor

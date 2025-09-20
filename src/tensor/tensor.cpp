@@ -253,4 +253,29 @@ Tensor& Tensor::transpose_() {
   return transpose_({1, 0});
 }
 
+Tensor& Tensor::unsqueeze_(size_t axis) {
+    // Copy current dims
+    auto new_dims = dims();
+    if (axis > new_dims.size()) {
+        throw std::invalid_argument("unsqueeze axis out of range");
+    }
+    new_dims.insert(new_dims.begin() + axis, 1);
+
+    // Create new TensorShape
+    _shape = createShape(new_dims);
+
+    return *this;
+}
+
+Tensor& Tensor::squeeze_(size_t axis) {
+  auto new_dims = dims();
+  if (axis >= new_dims.size() || new_dims[axis] != 1) {
+    throw std::invalid_argument("cannot squeeze axis with dim != 1");
+    new_dims.erase(new_dims.begin() + axis);
+
+    _shape = createShape(new_dims);
+    return *this;
+  }
+}
+
 } // namespace tensor
