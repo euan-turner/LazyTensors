@@ -1,6 +1,7 @@
 
 #include "tensor/cpu_impl.hpp"
 #include "tensor/tensor_ops.hpp"
+#include "tensor/cpu_ops.hpp"
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -80,6 +81,40 @@ std::shared_ptr<TensorImpl> CPUImpl::from_cpu(const CPUImpl& cpu_tensor) {
   return std::make_shared<CPUImpl>(cpu_tensor);
 }
 
+/**
+ * @brief Perform an in-place binary operation on two CPU tensors.
+ * The operation is defined by the template parameter `op`.
+ * The tensor `a` is modified in place by applying the operation with tensor `b`.
+ * Broadcasting of `b` dimensions is supported according to the following rules:
+ *  - Dimensions are compatible when
+ *    - they are equal, or
+ *    - one of them is 1 (repeat to match other)
+ * 
+ * @tparam op 
+ * @param a 
+ * @param b 
+ */
+template <typename BinOp>
+void CPUImpl::binary_op_inplace(const TensorImpl* b, BinOp op) {
+  auto b_cpu = dynamic_cast<const CPUImpl*>(b);
+  if (!b_cpu) {
+    throw std::runtime_error("CPUImpl::binary_op_inplace: expected CPUImpl");
+  }
+
+  // TODO: implement broadcasting properly using strides. For now assume
+  // shapes are compatible and laid out so a flat walk is valid.
+  size_t n = numel();
+  for (size_t i = 0; i < n; ++i) {
+    _data[i] = op(_data[i], b_cpu->_data[i]);
+  }
+}
+
+// Explicit instantiations for the BinOp functors used here
+template void CPUImpl::binary_op_inplace<AddCPUOp>(const TensorImpl* b, AddCPUOp);
+template void CPUImpl::binary_op_inplace<SubCPUOp>(const TensorImpl* b, SubCPUOp);
+template void CPUImpl::binary_op_inplace<MulCPUOp>(const TensorImpl* b, MulCPUOp);
+template void CPUImpl::binary_op_inplace<DivCPUOp>(const TensorImpl* b, DivCPUOp);
+
 // Initial implementation - just naively dispatch every op immediately
 void CPUImpl::apply(const Op& op) {
     switch (op.type) {
@@ -126,34 +161,26 @@ void CPUImpl::apply(const Op& op) {
             }
             break;
         }
-
+        // TODO: Broadcast
+        // From trailing dimension:
+        // Dimensions are compatible when
+        //  - they are equal, or
+        //  - one of them is 1 (repeat to match other)
         case OpType::BIN_ADD: {
-            auto other = dynamic_cast<const CPUImpl*>(op.other);
-            if (!other) throw std::runtime_error("CPUImpl::apply: BIN_ADD expected CPUImpl");
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] += other->_data[i];
-            break;
+          binary_op_inplace(op.other, AddCPUOp{});
+          break;
         }
         case OpType::BIN_SUB: {
-            auto other = dynamic_cast<const CPUImpl*>(op.other);
-            if (!other) throw std::runtime_error("CPUImpl::apply: BIN_SUB expected CPUImpl");
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] -= other->_data[i];
-            break;
+          binary_op_inplace(op.other, SubCPUOp{});
+          break;
         }
         case OpType::BIN_MUL: {
-            auto other = dynamic_cast<const CPUImpl*>(op.other);
-            if (!other) throw std::runtime_error("CPUImpl::apply: BIN_MUL expected CPUImpl");
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] *= other->_data[i];
-            break;
+          binary_op_inplace(op.other, MulCPUOp{});
+          break;
         }
         case OpType::BIN_DIV: {
-            auto other = dynamic_cast<const CPUImpl*>(op.other);
-            if (!other) throw std::runtime_error("CPUImpl::apply: BIN_DIV expected CPUImpl");
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] /= other->_data[i];
-            break;
+          binary_op_inplace(op.other, DivCPUOp{});
+          break;
         }
 
         default:
@@ -255,6 +282,7 @@ std::shared_ptr<TensorImpl> CPUImpl::matmul(TensorImpl& b) {
   }
 
   throw std::runtime_error("Dimensions invalid");
+  return nullptr;
 }
 
 std::shared_ptr<TensorImpl> CPUImpl::sum(int axis, bool keepdim) { 

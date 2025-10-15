@@ -78,17 +78,17 @@ void CUDAImpl::_apply(const Op& op) {
     switch (op.type) {
         case OpType::SCAL_ADD: {
             auto p = std::get<ScalParams>(op.params);
-            launch_elemwise_scalop(_data, p.x, numel(), AddOp{});
+            launch_elemwise_scalop(_data, p.x, numel(), AddCUOp{});
             break;
         }
         case OpType::SCAL_SUB: {
             auto p = std::get<ScalParams>(op.params);
-            launch_elemwise_scalop(_data, p.x, numel(), SubOp{});
+            launch_elemwise_scalop(_data, p.x, numel(), SubCUOp{});
             break;
         }
         case OpType::SCAL_MUL: {
             auto p = std::get<ScalParams>(op.params);
-            launch_elemwise_scalop(_data, p.x, numel(), MulOp{});
+            launch_elemwise_scalop(_data, p.x, numel(), MulCUOp{});
             break;
         }
         case OpType::SCAL_DIV: {
@@ -96,16 +96,16 @@ void CUDAImpl::_apply(const Op& op) {
             if (std::abs(p.x) < std::numeric_limits<float>::epsilon()) {
               throw std::runtime_error("CUDAImpl::apply: SCAL_DIV dividing by zero");
             }
-            launch_elemwise_scalop(_data, p.x, numel(), DivOp{});
+            launch_elemwise_scalop(_data, p.x, numel(), DivCUOp{});
             break;
         }
 
         case OpType::EXP:
-            launch_elemwise_unop(_data, numel(), ExpOp{});
+            launch_elemwise_unop(_data, numel(), ExpCUOp{});
             break;
 
         case OpType::LOG:
-            launch_elemwise_unop(_data, numel(), LogOp{});
+            launch_elemwise_unop(_data, numel(), LogCUOp{});
             break;
 
         case OpType::CLAMP: {
@@ -117,25 +117,25 @@ void CUDAImpl::_apply(const Op& op) {
         case OpType::BIN_ADD: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_ADD expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), AddOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), AddCUOp{});
             break;
         }
         case OpType::BIN_SUB: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_SUB expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), SubOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), SubCUOp{});
             break;
         }
         case OpType::BIN_MUL: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_MUL expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), MulOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), MulCUOp{});
             break;
         }
         case OpType::BIN_DIV: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_DIV expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), DivOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), DivCUOp{});
             break;
         }
 
@@ -293,7 +293,7 @@ std::shared_ptr<TensorImpl> CUDAImpl::relu_back(TensorImpl& gradients) {
   flush();
   auto res = std::make_shared<CUDAImpl>(_shape);
   auto grads = dynamic_cast<CUDAImpl&>(gradients);
-  launch_elemwise_binop(_data, grads._data, res->_data, numel(), ReLUBackOp{});
+  launch_elemwise_binop(_data, grads._data, res->_data, numel(), ReLUBackCUOp{});
   return res;
 }
 }

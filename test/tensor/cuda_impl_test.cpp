@@ -1,7 +1,6 @@
 #include <catch_amalgamated.hpp>
 #include "tensor/tensor.hpp"
 
-#include "init/xavier.hpp"
 #include "tensor/test_helpers.hpp"
 
 

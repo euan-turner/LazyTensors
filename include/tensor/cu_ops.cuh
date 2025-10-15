@@ -8,8 +8,8 @@ struct name { \
     __device__ float operator()(float x) const { return expr; } \
 };
 
-DEFINE_UNARY_OP(ExpOp, __expf(x))
-DEFINE_UNARY_OP(LogOp, __logf(x))
+DEFINE_UNARY_OP(ExpCUOp, __expf(x))
+DEFINE_UNARY_OP(LogCUOp, __logf(x))
 
 struct ClampOp {
   float _lo, _hi;
@@ -23,11 +23,11 @@ struct name { \
     __device__ float operator()(float x, float y) const { return expr; } \
 };
 
-DEFINE_BINARY_OP(AddOp, x + y)
-DEFINE_BINARY_OP(SubOp, x - y)
-DEFINE_BINARY_OP(MulOp, x * y)
-DEFINE_BINARY_OP(DivOp, x / y)
-DEFINE_BINARY_OP(ReLUBackOp, x > 0.0f ? y : 0.0f; ) // x is input, y is grad
+DEFINE_BINARY_OP(AddCUOp, x + y)
+DEFINE_BINARY_OP(SubCUOp, x - y)
+DEFINE_BINARY_OP(MulCUOp, x * y)
+DEFINE_BINARY_OP(DivCUOp, x / y)
+DEFINE_BINARY_OP(ReLUBackCUOp, x > 0.0f ? y : 0.0f; ) // x is input, y is grad
 
 
 

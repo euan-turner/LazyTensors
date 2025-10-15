@@ -1,23 +1,14 @@
-## CMake Options
-Default (Release, no debug):
+# Lazy Tensors
 
-All from build
+A simple library for Tensor operations, supporting lazy evaluation (where possible), with kernel fusion at the point operations are executed.
 
-```bash
-cmake ..
-cmake --build .
-```
+CPU and CUDA back-ends currently being implemented.
 
-With host debug:
-
-```bash
-cmake .. -DHOST_DEBUG=ON
-cmake --build .
-```
-
-With host + CUDA debug:
-
-```bash
-cmake .. -DHOST_DEBUG=ON -DCUDA_DEBUG=ON
-cmake --build .
-```
+Worklist:
+[ ] Clean up removal of old code
+[ ] Document roles of Tensor and TensorImpl
+[ ] Broadcasting of binary operations
+[ ] Broadcasting of matrix multiplications
+[ ] Elevate lazy buffering of operations to TensorImpl
+[ ] Kernel fusion of binary operations
+[ ] Kernel fusion of unary operations

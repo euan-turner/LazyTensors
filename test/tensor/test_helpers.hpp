@@ -1,19 +1,14 @@
 #pragma once
 #include "tensor/tensor.hpp"
-#include "init/xavier.hpp"
 #include <catch_amalgamated.hpp>
 #include <vector>
 
 using namespace tensor;
-using namespace init;
 using Catch::Approx;
 
 inline Tensor make_test_cpu_tensor(std::vector<size_t> dims) {
   Tensor t(dims, Device::CPU);
-  size_t fan_in = 4, fan_out = 3;
-  float gain = 1.0f;
-  Xavier x(fan_in, fan_out, gain);
-  x.initialise(t);
+  // TODO: Tensor initialisation
   return t;
 }
 

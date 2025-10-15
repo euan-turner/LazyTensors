@@ -10,9 +10,9 @@ Tensor::Tensor(std::shared_ptr<TensorImpl> impl) {
   _impl = impl;
 }
 
-Tensor::Tensor(std::vector<size_t> dims, Device device) : _device(device) {
+Tensor::Tensor(std::vector<size_t> dims, Device device) {
     _shape = createShape(dims);
-    _impl = TensorImpl::create_impl(_device, _shape);
+    _impl = TensorImpl::create_impl(device, _shape);
 }
 
 void Tensor::to(Device target) {
@@ -147,12 +147,6 @@ size_t Tensor::length() const {
 Tensor Tensor::matmul(const Tensor& other) const {
   // TODO: Validation checks on shapes
   std::shared_ptr<TensorImpl> res_impl = _impl->matmul(*other._impl);
-  return Tensor(res_impl);
-}
-
-Tensor Tensor::relu_back(const Tensor& gradients) const {
-  // TODO: Validation checks on shapes
-  std::shared_ptr<TensorImpl> res_impl = _impl->relu_back(*gradients._impl);
   return Tensor(res_impl);
 }
 
