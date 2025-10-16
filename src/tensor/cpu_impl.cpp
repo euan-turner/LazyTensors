@@ -353,16 +353,6 @@ std::shared_ptr<TensorImpl> CPUImpl::mean(int axis, bool keepdim) {
   return result;
 }
 
-std::shared_ptr<TensorImpl> CPUImpl::relu_back(TensorImpl& gradients) {
-  flush(); 
-  auto res = std::make_shared<CPUImpl>(_shape);
-  auto grads = dynamic_cast<CPUImpl&>(gradients);
-  for (size_t i = 0; i < numel(); ++i) {
-    res->_data[i] = _data[i] > 0.0f ? grads._data[i] : 0.0f;
-  }
-  return res;
-}
-
 void CPUImpl::flush() {}
 
 }

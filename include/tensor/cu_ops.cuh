@@ -27,8 +27,6 @@ DEFINE_BINARY_OP(AddCUOp, x + y)
 DEFINE_BINARY_OP(SubCUOp, x - y)
 DEFINE_BINARY_OP(MulCUOp, x * y)
 DEFINE_BINARY_OP(DivCUOp, x / y)
-DEFINE_BINARY_OP(ReLUBackCUOp, x > 0.0f ? y : 0.0f; ) // x is input, y is grad
-
 
 
 }

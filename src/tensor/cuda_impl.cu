@@ -209,7 +209,8 @@ __global__ void dotprod_kernel(float* A, float* B, float* res, size_t N) {
   }
 
   if (threadIdx.x == 0) {
-    atomicAdd(res, *smem);
+    // each block writes its partial sum to the single float pointed to by res
+    atomicAdd(res, smem[0]);
   }
 }
 
@@ -217,6 +218,8 @@ __global__ void dotprod_kernel(float* A, float* B, float* res, size_t N) {
 void launch_dotprod(float* a, float* b, float* res, size_t N) {
   int BLOCK_DIM = 32;
   int GRID_DIM = CEIL_DIV(N, 32);
+  // Ensure the accumulator is zeroed before launching the kernel
+  CUDA_CHECK(cudaMemset(res, 0, sizeof(float)));
   dotprod_kernel<<<GRID_DIM, BLOCK_DIM, BLOCK_DIM * sizeof(float)>>>(a, b, res, N);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
@@ -289,11 +292,4 @@ std::shared_ptr<TensorImpl> CUDAImpl::matmul(TensorImpl& b) {
   }
 }
 
-std::shared_ptr<TensorImpl> CUDAImpl::relu_back(TensorImpl& gradients) {
-  flush();
-  auto res = std::make_shared<CUDAImpl>(_shape);
-  auto grads = dynamic_cast<CUDAImpl&>(gradients);
-  launch_elemwise_binop(_data, grads._data, res->_data, numel(), ReLUBackCUOp{});
-  return res;
-}
 }

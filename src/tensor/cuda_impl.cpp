@@ -15,6 +15,8 @@ CUDAImpl::CUDAImpl(const CUDAImpl& other)
   : TensorImpl(other)
   , _data(nullptr)
 {
+  // Ensure any buffered ops on the source are applied before copying
+  const_cast<CUDAImpl&>(other).flush();
   if (other._data && _shape) {
     size_t size = numel() * sizeof(float);
     CUDA_CHECK(cudaMalloc(&_data, size));
@@ -28,6 +30,9 @@ CUDAImpl& CUDAImpl::operator=(const CUDAImpl& other) {
 
     CUDA_CHECK(cudaFree(_data));
     _data = nullptr;
+
+    // Ensure any buffered ops on the source are applied before copying
+    const_cast<CUDAImpl&>(other).flush();
 
     if (other._data && _shape) {
       size_t size = numel() * sizeof(float);
@@ -75,12 +80,16 @@ void CUDAImpl::set(const std::vector<size_t> &idx, float v) {
 Device CUDAImpl::device() const { return Device::CUDA; }
 
 std::shared_ptr<TensorImpl> CUDAImpl::clone() const {
+  // Ensure any pending ops are applied before cloning
+  const_cast<CUDAImpl*>(this)->flush();
   auto other = std::make_shared<CUDAImpl>(_shape);
   CUDA_CHECK(cudaMemcpy(other->_data, _data, numel() * sizeof(float), cudaMemcpyDeviceToDevice));
   return other;
 }
 
 std::shared_ptr<CPUImpl> CUDAImpl::to_cpu() const { 
+  // Ensure pending ops are applied before transferring to host
+  const_cast<CUDAImpl*>(this)->flush();
   auto cpu_tensor = std::make_shared<CPUImpl>(_shape);
   CUDA_CHECK(cudaMemcpy(cpu_tensor->raw_data(), _data, numel() * sizeof(float), cudaMemcpyDeviceToHost));
   return cpu_tensor;

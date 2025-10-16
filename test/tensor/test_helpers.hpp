@@ -8,7 +8,19 @@ using Catch::Approx;
 
 inline Tensor make_test_cpu_tensor(std::vector<size_t> dims) {
   Tensor t(dims, Device::CPU);
-  // TODO: Tensor initialisation
+  // Deterministic initialization pattern so tests are reproducible.
+  // Fill with values in range [-5, 5) based on flat index.
+  size_t n = t.numel();
+  std::vector<size_t> idx(dims.size(), 0);
+  for (size_t flat = 0; flat < n; ++flat) {
+    size_t rem = flat;
+    for (size_t i = 0; i < dims.size(); ++i) {
+      idx[i] = rem / t.strides()[i];
+      rem %= t.strides()[i];
+    }
+    float v = static_cast<float>(static_cast<int>(flat % 100)) / 10.0f - 5.0f; // [-5,5)
+    t.set(idx, v);
+  }
   return t;
 }
 

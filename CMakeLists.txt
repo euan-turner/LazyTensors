@@ -117,3 +117,11 @@ else()
     message(WARNING "No test sources found for 'tensor'")
 endif()
 
+# Ensure tests are also compiled with host debug symbols when requested.
+if(TARGET tensorTests)
+    if(HOST_DEBUG)
+        message(STATUS "Enabling host debug symbols for tensorTests")
+        target_compile_options(tensorTests PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-g>)
+    endif()
+endif()
+
