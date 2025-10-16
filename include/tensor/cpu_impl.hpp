@@ -11,10 +11,12 @@ namespace tensor {
 class CPUImpl final : public TensorImpl {
     private:
         float* _data;
-        // Templated in-place binary op. Defined in cpu_impl.cpp and explicitly
-        // instantiated for the supported BinOp functors there.
+        // Templated methods are instantiated in cpu_impl.cpp
+        template <typename UnOp>
+        void unary_op_inplace(UnOp op);
         template <typename BinOp>
         void binary_op_inplace(const TensorImpl* b, BinOp op);
+
 
 
     public:

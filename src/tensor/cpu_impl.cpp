@@ -2,7 +2,6 @@
 #include "tensor/cpu_impl.hpp"
 #include "tensor/tensor_ops.hpp"
 #include "tensor/cpu_ops.hpp"
-#include <cmath>
 #include <cstdlib>
 #include <cstring>
 
@@ -30,7 +29,7 @@ CPUImpl& CPUImpl::operator=(const CPUImpl& other) {
     if (this != &other) {
         TensorImpl::operator=(other);
         
-        // TODO: Need better control over when data is allocated and freed
+        // TODO: Need clearer documentation of when allocations and frees occur
         free(_data);
         _data = nullptr;
         
@@ -81,6 +80,16 @@ std::shared_ptr<TensorImpl> CPUImpl::from_cpu(const CPUImpl& cpu_tensor) {
   return std::make_shared<CPUImpl>(cpu_tensor);
 }
 
+
+template <typename UnOp>
+void CPUImpl::unary_op_inplace(UnOp op) {
+  size_t n = numel();
+  // TODO: parallelise
+  for (size_t i = 0; i < n; ++i) {
+    _data[i] = op(_data[i]);
+  }
+}
+
 /**
  * @brief Perform an in-place binary operation on two CPU tensors.
  * The operation is defined by the template parameter `op`.
@@ -109,77 +118,69 @@ void CPUImpl::binary_op_inplace(const TensorImpl* b, BinOp op) {
   }
 }
 
-// Explicit instantiations for the BinOp functors used here
-template void CPUImpl::binary_op_inplace<AddCPUOp>(const TensorImpl* b, AddCPUOp);
-template void CPUImpl::binary_op_inplace<SubCPUOp>(const TensorImpl* b, SubCPUOp);
-template void CPUImpl::binary_op_inplace<MulCPUOp>(const TensorImpl* b, MulCPUOp);
-template void CPUImpl::binary_op_inplace<DivCPUOp>(const TensorImpl* b, DivCPUOp);
+template void CPUImpl::unary_op_inplace<ScalAddCPU>(ScalAddCPU);
+template void CPUImpl::unary_op_inplace<ScalSubCPU>(ScalSubCPU);
+template void CPUImpl::unary_op_inplace<ScalMulCPU>(ScalMulCPU);
+template void CPUImpl::unary_op_inplace<ScalDivCPU>(ScalDivCPU);
+template void CPUImpl::unary_op_inplace<UnExpCPU>(UnExpCPU);
+template void CPUImpl::unary_op_inplace<UnLogCPU>(UnLogCPU);
+template void CPUImpl::unary_op_inplace<UnClampCPU>(UnClampCPU);
+template void CPUImpl::binary_op_inplace<BinAddCPU>(const TensorImpl* b, BinAddCPU);
+template void CPUImpl::binary_op_inplace<BinSubCPU>(const TensorImpl* b, BinSubCPU);
+template void CPUImpl::binary_op_inplace<BinMulCPU>(const TensorImpl* b, BinMulCPU);
+template void CPUImpl::binary_op_inplace<BinDivCPU>(const TensorImpl* b, BinDivCPU);
 
 // Initial implementation - just naively dispatch every op immediately
 void CPUImpl::apply(const Op& op) {
     switch (op.type) {
         case OpType::SCAL_ADD: {
             auto p = std::get<ScalParams>(op.params);
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] += p.x;
+            unary_op_inplace(ScalAddCPU(p.x));
             break;
         }
         case OpType::SCAL_SUB: {
             auto p = std::get<ScalParams>(op.params);
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] -= p.x;
+            unary_op_inplace(ScalSubCPU(p.x));
             break;
         }
         case OpType::SCAL_MUL: {
             auto p = std::get<ScalParams>(op.params);
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] *= p.x;
+            unary_op_inplace(ScalMulCPU(p.x));
             break;
         }
         case OpType::SCAL_DIV: {
             auto p = std::get<ScalParams>(op.params);
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] /= p.x;
+            unary_op_inplace(ScalDivCPU(p.x));
             break;
         }
 
         case OpType::EXP:
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] = std::exp(_data[i]);
+            unary_op_inplace(UnExpCPU{});
             break;
 
         case OpType::LOG:
-            for (size_t i = 0; i < numel(); i++)
-                _data[i] = std::log(_data[i]);
+            unary_op_inplace(UnLogCPU{});
             break;
 
         case OpType::CLAMP: {
             auto p = std::get<ClampParams>(op.params);
-            for (size_t i = 0; i < numel(); i++) {
-                if (_data[i] < p.lo) _data[i] = p.lo;
-                else if (_data[i] > p.hi) _data[i] = p.hi;
-            }
+            unary_op_inplace(UnClampCPU(p.lo, p.hi));
             break;
         }
-        // TODO: Broadcast
-        // From trailing dimension:
-        // Dimensions are compatible when
-        //  - they are equal, or
-        //  - one of them is 1 (repeat to match other)
         case OpType::BIN_ADD: {
-          binary_op_inplace(op.other, AddCPUOp{});
+          binary_op_inplace(op.other, BinAddCPU{});
           break;
         }
         case OpType::BIN_SUB: {
-          binary_op_inplace(op.other, SubCPUOp{});
+          binary_op_inplace(op.other, BinSubCPU{});
           break;
         }
         case OpType::BIN_MUL: {
-          binary_op_inplace(op.other, MulCPUOp{});
+          binary_op_inplace(op.other, BinMulCPU{});
           break;
         }
         case OpType::BIN_DIV: {
-          binary_op_inplace(op.other, DivCPUOp{});
+          binary_op_inplace(op.other, BinDivCPU{});
           break;
         }
 
