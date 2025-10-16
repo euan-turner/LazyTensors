@@ -8,6 +8,7 @@
 
 namespace tensor {
 
+// Forward declare as routing point for device copies
 class CPUImpl;
 
 /**
@@ -15,11 +16,14 @@ class CPUImpl;
  * 
  * Each Tensor holds a shared_ptr<TensorImpl> which encapsulates:
  *  - The raw memory buffer
- *  - Device-specific execution (CPU / CUDA)
+ *  - Device-specific execution (CPU, CUDA, etc.)
  *  - Primitive ops (elementwise, matmul, reductions, etc.)
  *
  * Tensor forwards high-level API calls to its Impl. The Impl can
  * assume that dimensions will always match for the operation.
+ *
+ * The Impl will buffer operations (where specified by the specific backend),
+ * only executing when required. However, execution can be forced by calling `flush`.
  */
 class TensorImpl {
     protected:

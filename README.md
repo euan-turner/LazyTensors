@@ -6,8 +6,8 @@ CPU and CUDA back-ends currently being implemented.
 
 Worklist:
 
-- [ ] Clean up removal of old code
-- [ ] Document roles of Tensor and TensorImpl
+- [x] Clean up removal of old code
+- [x] Document roles of Tensor and TensorImpl
 - [ ] Broadcasting of binary operations
 - [ ] Broadcasting of matrix multiplications
 - [ ] Elevate lazy buffering of operations to TensorImpl
