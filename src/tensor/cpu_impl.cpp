@@ -2,10 +2,54 @@
 #include "tensor/cpu_impl.hpp"
 #include "tensor/tensor_ops.hpp"
 #include "tensor/cpu_ops.hpp"
+#include "tensor/tensor_shape.hpp"
 #include <cstdlib>
 #include <cstring>
 
 namespace tensor {
+
+
+struct TensorIterator {
+    const TensorShape shape;           // actual tensor in memory: numel, dims, strides
+    const std::vector<size_t>& broadcast_dims; // broadcasted shape for iteration
+    std::vector<size_t> idx;           // current N-dimensional index
+    size_t numel;                      // total elements in broadcasted shape
+    size_t linear_index;               // how many elements have been visited
+    size_t ndim;
+
+    TensorIterator(const TensorShape& shape_,
+                   const std::vector<size_t>& broadcast_dims_)
+        : shape(shape_), broadcast_dims(broadcast_dims_), linear_index(0) 
+    {
+        ndim = broadcast_dims.size();
+        numel = 1;
+        for (auto d : broadcast_dims) numel *= d;
+        idx.assign(ndim, 0);
+    }
+
+    // Advance iterator and compute memory offset
+    // Returns false if iteration is complete
+    bool next(size_t& offset) {
+        if (linear_index >= numel) return false;
+
+        // Compute offset using actual tensor shape and strides
+        offset = 0;
+        for (size_t d = 0; d < ndim; ++d) {
+            size_t i = (shape.dims[d] == 1) ? 0 : idx[d]; // broadcast dims -> repeated
+            offset += i * shape.strides[d];
+        }
+
+        // Increment multi-dimensional index (odometer style)
+        ++linear_index;
+        for (int d = ndim - 1; d >= 0; --d) {
+            if (++idx[d] < broadcast_dims[d]) break;
+            idx[d] = 0;
+        }
+
+        return true;
+    }
+};
+
 
 CPUImpl::CPUImpl(const std::shared_ptr<TensorShape> shape) : TensorImpl(shape) {
   _data = (float*)malloc(numel() * sizeof(float));
@@ -97,7 +141,7 @@ void CPUImpl::unary_op_inplace(UnOp op) {
  * Broadcasting of `b` dimensions is supported according to the following rules:
  *  - Dimensions are compatible when
  *    - they are equal, or
- *    - one of them is 1 (repeat to match other)
+ *    - one of them is 1 (repeat to match `a`)
  * 
  * @tparam op 
  * @param a 
@@ -110,12 +154,50 @@ void CPUImpl::binary_op_inplace(const TensorImpl* b, BinOp op) {
     throw std::runtime_error("CPUImpl::binary_op_inplace: expected CPUImpl");
   }
 
-  // TODO: implement broadcasting properly using strides. For now assume
-  // shapes are compatible and laid out so a flat walk is valid.
-  size_t n = numel();
-  for (size_t i = 0; i < n; ++i) {
-    _data[i] = op(_data[i], b_cpu->_data[i]);
+  TensorShape b_shape = *b->shape();
+
+  size_t a_ndim = _shape->ndim();
+  size_t b_ndim = b_shape.ndim();
+  std::vector<size_t>& a_dims = _shape->dims;
+  std::vector<size_t>& b_dims = b_shape.dims;
+
+  if (a_ndim < b_ndim) {
+    throw std::runtime_error("CPUImpl::binary_op_inplace: only RHS can broadcast in binary in-place op");
   }
+  
+  if (b_ndim < a_ndim) {
+    // Extend a view of b to broadcast in leading dimensions
+    // but don't persist this view within b
+    int leading = a_ndim - b_ndim;
+    for (int i = 0; i < leading; ++i) {
+      b_shape.dims.insert(b_shape.dims.begin(), 1);
+      b_shape.strides.insert(b_shape.strides.begin(), 1);
+    }
+  }
+
+  // 1. Determine broadcasting of b's dimensions
+  std::vector<size_t> broadcast_dims(a_ndim, 0);
+  for (size_t d = 0; d < a_ndim; ++d) {
+    // d is the offset from the back of dims
+    size_t d_idx = a_ndim - 1 - d;
+    if (a_dims[d_idx] == b_dims[d_idx] || b_dims[d_idx] == 1) {
+      broadcast_dims[d_idx] = a_dims[d_idx];
+    } else {
+      throw std::runtime_error("CPUImpl::binary_op_inplace: only RHS can broadcast in binary in-place op");
+    }
+  }
+
+  // 2. Construct iterator for each Tensor
+  TensorIterator a_it(*_shape, _shape->dims);
+  TensorIterator b_it(b_shape, broadcast_dims);
+
+  // 3. Iterate both in tandem
+  size_t a_off = 0;
+  size_t b_off = 0;
+  while (a_it.next(a_off) && b_it.next(b_off)) {
+    _data[a_off] = op(_data[a_off], b_cpu->_data[b_off]);
+  }
+  
 }
 
 template void CPUImpl::unary_op_inplace<ScalAddCPU>(ScalAddCPU);

@@ -6,6 +6,7 @@
 
 #include <vector>
 #include "tensor/test_helpers.hpp"
+#include <functional>
 
 using namespace tensor;
 
@@ -291,4 +292,153 @@ TEST_CASE("Matrix multiplication after transpose returns correct values", "[Tens
     REQUIRE(c(0,1) == Approx(68.0f));
     REQUIRE(c(1,0) == Approx(122.0f));
     REQUIRE(c(1,1) == Approx(167.0f));
+}
+
+TEST_CASE("In-place binary ops with broadcasting (CPU)", "[Tensor][CPUImpl][Broadcast]") {
+
+    // Case 1: same number of dims, b has some unit dimensions that should broadcast
+    Tensor a1 = Tensor({2,3}, Device::CPU);
+    // a1 values: row-major fill
+    a1.set(0,0, 1.0f); a1.set(0,1, 2.0f); a1.set(0,2, 3.0f);
+    a1.set(1,0, 4.0f); a1.set(1,1, 5.0f); a1.set(1,2, 6.0f);
+
+    // b1 has same ndim but second dim is 1 -> should broadcast across columns
+    Tensor b1 = Tensor({2,1}, Device::CPU);
+    b1.set(0,0, 10.0f);
+    b1.set(1,0, 20.0f);
+
+    SECTION("add_ with b having unit inner dim") {
+        Tensor a = a1.clone();
+        a.add_(b1);
+        REQUIRE(a(0,0) == Approx(11.0f));
+        REQUIRE(a(0,1) == Approx(12.0f));
+        REQUIRE(a(0,2) == Approx(13.0f));
+        REQUIRE(a(1,0) == Approx(24.0f));
+        REQUIRE(a(1,1) == Approx(25.0f));
+        REQUIRE(a(1,2) == Approx(26.0f));
+    }
+
+    // Case 2: b has fewer dimensions and should broadcast into leading dims
+    Tensor a2 = Tensor({2,3,2}, Device::CPU);
+    // Explicit values for a2 (flat index + 1):
+    a2.set({0,0,0}, 1.0f);
+    a2.set({0,0,1}, 2.0f);
+    a2.set({0,1,0}, 3.0f);
+    a2.set({0,1,1}, 4.0f);
+    a2.set({0,2,0}, 5.0f);
+    a2.set({0,2,1}, 6.0f);
+    a2.set({1,0,0}, 7.0f);
+    a2.set({1,0,1}, 8.0f);
+    a2.set({1,1,0}, 9.0f);
+    a2.set({1,1,1}, 10.0f);
+    a2.set({1,2,0}, 11.0f);
+    a2.set({1,2,1}, 12.0f);
+
+    // b2 is 3x2 (missing leading dim) -> should be broadcast to 2x3x2
+    Tensor b2 = Tensor({3,2}, Device::CPU);
+    // Explicit values for b2: (flat_index+1)*2
+    b2.set({0,0}, 2.0f);
+    b2.set({0,1}, 4.0f);
+    b2.set({1,0}, 6.0f);
+    b2.set({1,1}, 8.0f);
+    b2.set({2,0}, 10.0f);
+    b2.set({2,1}, 12.0f);
+
+    SECTION("sub_ with b having fewer leading dims (leading broadcast)") {
+        Tensor a = a2.clone();
+        a.sub_(b2);
+        // check every element: a2 - broadcasted b2
+        // a2 explicit values: see above; b2 mapped per middle,last indices
+        // expected per position computed manually
+        REQUIRE(a({0,0,0}) == Approx(1.0f - 2.0f));   // 1 - b[0,0]=2
+        REQUIRE(a({0,0,1}) == Approx(2.0f - 4.0f));   // 2 - b[0,1]=4
+        REQUIRE(a({0,1,0}) == Approx(3.0f - 6.0f));   // 3 - b[1,0]=6
+        REQUIRE(a({0,1,1}) == Approx(4.0f - 8.0f));   // 4 - b[1,1]=8
+        REQUIRE(a({0,2,0}) == Approx(5.0f - 10.0f));  // 5 - b[2,0]=10
+        REQUIRE(a({0,2,1}) == Approx(6.0f - 12.0f));  // 6 - b[2,1]=12
+
+        REQUIRE(a({1,0,0}) == Approx(7.0f - 2.0f));   // 7 - b[0,0]=2
+        REQUIRE(a({1,0,1}) == Approx(8.0f - 4.0f));   // 8 - b[0,1]=4
+        REQUIRE(a({1,1,0}) == Approx(9.0f - 6.0f));   // 9 - b[1,0]=6
+        REQUIRE(a({1,1,1}) == Approx(10.0f - 8.0f));  // 10 - b[1,1]=8
+        REQUIRE(a({1,2,0}) == Approx(11.0f - 10.0f)); // 11 - b[2,0]=10
+        REQUIRE(a({1,2,1}) == Approx(12.0f - 12.0f)); // 12 - b[2,1]=12
+    }
+
+    // Case 3: combined - b has fewer dims and also unit dimensions
+    // a3 is 2x3x4 (explicit values)
+    Tensor a3 = Tensor({2,3,4}, Device::CPU);
+    // Fill a3 with explicit values 1..24 in row-major order
+    a3.set({0,0,0}, 1.0f);  a3.set({0,0,1}, 2.0f);  a3.set({0,0,2}, 3.0f);  a3.set({0,0,3}, 4.0f);
+    a3.set({0,1,0}, 5.0f);  a3.set({0,1,1}, 6.0f);  a3.set({0,1,2}, 7.0f);  a3.set({0,1,3}, 8.0f);
+    a3.set({0,2,0}, 9.0f);  a3.set({0,2,1}, 10.0f); a3.set({0,2,2}, 11.0f); a3.set({0,2,3}, 12.0f);
+    a3.set({1,0,0}, 13.0f); a3.set({1,0,1}, 14.0f); a3.set({1,0,2}, 15.0f); a3.set({1,0,3}, 16.0f);
+    a3.set({1,1,0}, 17.0f); a3.set({1,1,1}, 18.0f); a3.set({1,1,2}, 19.0f); a3.set({1,1,3}, 20.0f);
+    a3.set({1,2,0}, 21.0f); a3.set({1,2,1}, 22.0f); a3.set({1,2,2}, 23.0f); a3.set({1,2,3}, 24.0f);
+
+    // b3 is 1x3x1 -> will broadcast the leading dim and last dim
+    Tensor b3 = Tensor({1,3,1}, Device::CPU);
+    // set b3 values per middle dim
+    for (size_t i = 0; i < 3; ++i) b3.set({0,i,0}, static_cast<float>(i + 1));
+
+    SECTION("mul_ with combined leading and unit-dimension broadcasts") {
+        Tensor a = a3.clone();
+        a.mul_(b3);
+        // Build expected tensor explicitly (no loops)
+        Tensor expected = Tensor({2,3,4}, Device::CPU);
+        // i=0, j=0 (multiplier 1)
+        expected.set({0,0,0}, 1.0f * 1.0f);
+        expected.set({0,0,1}, 2.0f * 1.0f);
+        expected.set({0,0,2}, 3.0f * 1.0f);
+        expected.set({0,0,3}, 4.0f * 1.0f);
+        // i=0, j=1 (multiplier 2)
+        expected.set({0,1,0}, 5.0f * 2.0f);
+        expected.set({0,1,1}, 6.0f * 2.0f);
+        expected.set({0,1,2}, 7.0f * 2.0f);
+        expected.set({0,1,3}, 8.0f * 2.0f);
+        // i=0, j=2 (multiplier 3)
+        expected.set({0,2,0}, 9.0f * 3.0f);
+        expected.set({0,2,1}, 10.0f * 3.0f);
+        expected.set({0,2,2}, 11.0f * 3.0f);
+        expected.set({0,2,3}, 12.0f * 3.0f);
+        // i=1, j=0 (multiplier 1)
+        expected.set({1,0,0}, 13.0f * 1.0f);
+        expected.set({1,0,1}, 14.0f * 1.0f);
+        expected.set({1,0,2}, 15.0f * 1.0f);
+        expected.set({1,0,3}, 16.0f * 1.0f);
+        // i=1, j=1 (multiplier 2)
+        expected.set({1,1,0}, 17.0f * 2.0f);
+        expected.set({1,1,1}, 18.0f * 2.0f);
+        expected.set({1,1,2}, 19.0f * 2.0f);
+        expected.set({1,1,3}, 20.0f * 2.0f);
+        // i=1, j=2 (multiplier 3)
+        expected.set({1,2,0}, 21.0f * 3.0f);
+        expected.set({1,2,1}, 22.0f * 3.0f);
+        expected.set({1,2,2}, 23.0f * 3.0f);
+        expected.set({1,2,3}, 24.0f * 3.0f);
+
+        // Explicit REQUIREs for each element (no loops)
+        REQUIRE(a({0,0,0}) == Approx(expected({0,0,0}))); REQUIRE(a({0,0,1}) == Approx(expected({0,0,1}))); REQUIRE(a({0,0,2}) == Approx(expected({0,0,2}))); REQUIRE(a({0,0,3}) == Approx(expected({0,0,3})));
+        REQUIRE(a({0,1,0}) == Approx(expected({0,1,0}))); REQUIRE(a({0,1,1}) == Approx(expected({0,1,1}))); REQUIRE(a({0,1,2}) == Approx(expected({0,1,2}))); REQUIRE(a({0,1,3}) == Approx(expected({0,1,3})));
+        REQUIRE(a({0,2,0}) == Approx(expected({0,2,0}))); REQUIRE(a({0,2,1}) == Approx(expected({0,2,1}))); REQUIRE(a({0,2,2}) == Approx(expected({0,2,2}))); REQUIRE(a({0,2,3}) == Approx(expected({0,2,3})));
+        REQUIRE(a({1,0,0}) == Approx(expected({1,0,0}))); REQUIRE(a({1,0,1}) == Approx(expected({1,0,1}))); REQUIRE(a({1,0,2}) == Approx(expected({1,0,2}))); REQUIRE(a({1,0,3}) == Approx(expected({1,0,3})));
+        REQUIRE(a({1,1,0}) == Approx(expected({1,1,0}))); REQUIRE(a({1,1,1}) == Approx(expected({1,1,1}))); REQUIRE(a({1,1,2}) == Approx(expected({1,1,2}))); REQUIRE(a({1,1,3}) == Approx(expected({1,1,3})));
+        REQUIRE(a({1,2,0}) == Approx(expected({1,2,0}))); REQUIRE(a({1,2,1}) == Approx(expected({1,2,1}))); REQUIRE(a({1,2,2}) == Approx(expected({1,2,2}))); REQUIRE(a({1,2,3}) == Approx(expected({1,2,3})));
+    }
+
+    // Case 4: another variation using div_ for a 1D target with b broadcast
+    Tensor a4 = Tensor::vector(4, Device::CPU);
+    a4.set(0, 8.0f); a4.set(1, 16.0f); a4.set(2, 32.0f); a4.set(3, 64.0f);
+    // b4 is scalar shape (1,) represented as vector of length 1
+    Tensor b4 = Tensor::vector(1, Device::CPU);
+    b4.set(0, 2.0f);
+
+    SECTION("div_ with scalar-like RHS broadcasting to vector") {
+        Tensor a = a4.clone();
+        a.div_(b4);
+        REQUIRE(a(0) == Approx(4.0f));
+        REQUIRE(a(1) == Approx(8.0f));
+        REQUIRE(a(2) == Approx(16.0f));
+        REQUIRE(a(3) == Approx(32.0f));
+    }
 }
