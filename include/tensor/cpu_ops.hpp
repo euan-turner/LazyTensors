@@ -51,4 +51,8 @@ DEFINE_BINARY_OP(BinSubCPU, x - y)
 DEFINE_BINARY_OP(BinMulCPU, x * y)
 DEFINE_BINARY_OP(BinDivCPU, x / y)
 
+#undef DEFINE_SCAL_OP
+#undef DEFINE_UNARY_OP
+#undef DEFINE_BINARY_OP
+
 } // namespace tensor

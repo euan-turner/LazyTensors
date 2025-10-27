@@ -77,7 +77,7 @@ if(USE_CUDA)
     )
     target_link_libraries(tensor PUBLIC CUDA::cudart)
     set_target_properties(tensor PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_SEPARABLE_COMPILATION OFF
         CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES}
     )
 else()

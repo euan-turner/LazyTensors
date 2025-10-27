@@ -5,36 +5,20 @@
 
 namespace tensor {
 
-template <typename ScalOp>
-__global__ void elemwise_scalop_kernel(float* a, float s, size_t N, ScalOp op) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < N) {
-    a[idx] = op(a[idx], s);
-  }
-}
-
-template <typename ScalOp>
-void launch_elemwise_scalop(float* a, float s, size_t N, ScalOp op) {
-  size_t BLOCK_SIZE = 256;
-  size_t GRID_SIZE = CEIL_DIV(N, BLOCK_SIZE);
-  elemwise_scalop_kernel<<<GRID_SIZE, BLOCK_SIZE>>>(a, s, N, op);
-  CUDA_CHECK(cudaGetLastError());
-  CUDA_CHECK(cudaDeviceSynchronize());
-}
-
 template <typename UnOp>
-__global__ void elemwise_unop_kernel(float* a, size_t N, UnOp op) {
+__global__ void unary_op_kernel(float *a, size_t N, UnOp op) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < N) {
     a[idx] = op(a[idx]);
   }
 }
 
+
 template <typename UnOp>
-void launch_elemwise_unop(float* a, size_t N, UnOp op) {
+void launch_unary_op_inplace(float *a, size_t N, UnOp op) {
   size_t BLOCK_SIZE = 256;
   size_t GRID_SIZE = CEIL_DIV(N, BLOCK_SIZE);
-  elemwise_unop_kernel<<<GRID_SIZE, BLOCK_SIZE>>>(a, N, op);
+  unary_op_kernel<<<GRID_SIZE, BLOCK_SIZE>>>(a, N, op);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 }
@@ -78,17 +62,20 @@ void CUDAImpl::_apply(const Op& op) {
     switch (op.type) {
         case OpType::SCAL_ADD: {
             auto p = std::get<ScalParams>(op.params);
-            launch_elemwise_scalop(_data, p.x, numel(), AddCUOp{});
+            launch_unary_op_inplace(_data, numel(), ScalAddCUDA(p.x));
+            // launch_elemwise_scalop(_data, p.x, numel(), AddCUOp{});
             break;
         }
         case OpType::SCAL_SUB: {
             auto p = std::get<ScalParams>(op.params);
-            launch_elemwise_scalop(_data, p.x, numel(), SubCUOp{});
+            launch_unary_op_inplace(_data, numel(), ScalSubCUDA(p.x));
+            // launch_elemwise_scalop(_data, p.x, numel(), SubCUOp{});
             break;
         }
         case OpType::SCAL_MUL: {
             auto p = std::get<ScalParams>(op.params);
-            launch_elemwise_scalop(_data, p.x, numel(), MulCUOp{});
+            launch_unary_op_inplace(_data, numel(), ScalMulCUDA(p.x));
+            // launch_elemwise_scalop(_data, p.x, numel(), MulCUOp{});
             break;
         }
         case OpType::SCAL_DIV: {
@@ -96,46 +83,47 @@ void CUDAImpl::_apply(const Op& op) {
             if (std::abs(p.x) < std::numeric_limits<float>::epsilon()) {
               throw std::runtime_error("CUDAImpl::apply: SCAL_DIV dividing by zero");
             }
-            launch_elemwise_scalop(_data, p.x, numel(), DivCUOp{});
+            launch_unary_op_inplace(_data, numel(), ScalDivCUDA(p.x));
+            // launch_elemwise_scalop(_data, p.x, numel(), DivCUOp{});
             break;
         }
 
         case OpType::EXP:
-            launch_elemwise_unop(_data, numel(), ExpCUOp{});
+            launch_unary_op_inplace(_data, numel(), UnExpCUDA{});
             break;
 
         case OpType::LOG:
-            launch_elemwise_unop(_data, numel(), LogCUOp{});
+            launch_unary_op_inplace(_data, numel(), UnLogCUDA{});
             break;
 
         case OpType::CLAMP: {
             auto p = std::get<ClampParams>(op.params);
-            launch_elemwise_unop(_data, numel(), ClampOp{p.lo, p.hi});
+            launch_unary_op_inplace(_data, numel(), UnClampCUDA{p.lo, p.hi});
             break;
         }
 
         case OpType::BIN_ADD: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_ADD expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), AddCUOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), BinAddCUDA{});
             break;
         }
         case OpType::BIN_SUB: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_SUB expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), SubCUOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), BinSubCUDA{});
             break;
         }
         case OpType::BIN_MUL: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_MUL expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), MulCUOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), BinMulCUDA{});
             break;
         }
         case OpType::BIN_DIV: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_DIV expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), DivCUOp{});
+            launch_elemwise_binop_ip(_data, other->_data, numel(), BinDivCUDA{});
             break;
         }
 
@@ -290,6 +278,9 @@ std::shared_ptr<TensorImpl> CUDAImpl::matmul(TensorImpl& b) {
     launch_dotprod(_data, other->_data, result->_data, len);
     return result;
   }
+
+  throw std::runtime_error("Dimensions invalid");
+  return nullptr;
 }
 
-}
+} // namespace tensor
