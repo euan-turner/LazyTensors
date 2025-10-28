@@ -171,7 +171,7 @@ void CPUImpl::binary_op_inplace(const TensorImpl* b, BinOp op) {
     int leading = a_ndim - b_ndim;
     for (int i = 0; i < leading; ++i) {
       b_shape.dims.insert(b_shape.dims.begin(), 1);
-      b_shape.strides.insert(b_shape.strides.begin(), 1);
+      b_shape.strides.insert(b_shape.strides.begin(), 0);
     }
   }
 

@@ -2,6 +2,7 @@
 #include "tensor/tensor_ops.hpp"
 #include "tensor/cu_macros.hpp"
 #include "tensor/cu_ops.cuh"
+#include <iostream>
 
 namespace tensor {
 
@@ -23,38 +24,110 @@ void launch_unary_op_inplace(float *a, size_t N, UnOp op) {
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 
+// TODO: broadcasting
+// template <typename BinOp>
+// __global__ void elemwise_binop_kernel_ip(float* a, float* b, size_t N, BinOp op) {
+//   int idx = blockIdx.x * blockDim.x + threadIdx.x;
+//   if (idx < N) {
+//     a[idx] = op(a[idx], b[idx]);
+//   }
+// }
+
+// template <typename BinOp>
+// void launch_elemwise_binop_ip(float* a, float* b, size_t N, BinOp op) {
+//   size_t BLOCK_SIZE = 256;
+//   size_t GRID_SIZE = CEIL_DIV(N, BLOCK_SIZE);
+//   elemwise_binop_kernel_ip<<<GRID_SIZE, BLOCK_SIZE>>>(a, b, N, op);
+//   CUDA_CHECK(cudaGetLastError());
+//   CUDA_CHECK(cudaDeviceSynchronize());
+// }
+
+// TODO: Either remove unnecessary broadcasting of a, or make this out of place
 template <typename BinOp>
-__global__ void elemwise_binop_kernel_ip(float* a, float* b, size_t N, BinOp op) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < N) {
-    a[idx] = op(a[idx], b[idx]);
+__global__ void elemwise_binop_ip_broadcast(
+  float* a,
+  const float* b,
+  const size_t* shape, // size of each dim
+  const size_t* stride_a, // a stride along each dim
+  const size_t* stride_b, // b stride along each dim
+  int ndim,
+  size_t N, // total output size
+  BinOp op
+) {
+  size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= N) return;
+
+  size_t tmp = idx;
+  size_t offset_a = 0;
+  size_t offset_b = 0;
+
+  // convert output linear index -> N-D co-ordinates -> offsets
+  for (int d = ndim - 1; d >= 0; --d) {
+    size_t coord = tmp % shape[d];
+    tmp /= shape[d];
+    offset_a += coord * stride_a[d];
+    offset_b += coord * stride_b[d];
   }
+  a[offset_a] = op(a[offset_a], b[offset_b]);
 }
 
 template <typename BinOp>
-void launch_elemwise_binop_ip(float* a, float* b, size_t N, BinOp op) {
+void launch_elemwise_binop_ip_broadcast(
+  float* a,
+  const float* b,
+  TensorShape a_shape,
+  TensorShape b_shape,
+  size_t N, // size of A
+  BinOp op
+) {
+  size_t ndim = a_shape.ndim();
+  size_t b_ndim = b_shape.ndim();
+
+  if (b_ndim > ndim) {
+    throw std::runtime_error("CUDAImpl::launch_elemwise_binop_ip_broadcast: only RHS can broadcast for binary in-place op");
+  }
+
+  // insert leading broadcast dimensions to b
+  if (b_ndim < ndim) {
+    int leading = ndim - b_ndim;
+    for (int i = 0; i < leading; ++i) {
+      b_shape.dims.insert(b_shape.dims.begin(), 1);
+      b_shape.strides.insert(b_shape.strides.begin(), 1);
+    }
+  }
+
+  // validate broadcasting of b's dimensions
+  // and ensure that stride is 0 for all dimensions with size 1
+  for (size_t d = 0; d < ndim; ++d) {
+    size_t d_idx = ndim - 1 - d;
+    if (b_shape.dims[d_idx] == 1) {
+      b_shape.strides[d_idx] = 0;
+    } else if (a_shape.dims[d_idx] != b_shape.dims[d_idx]) {
+      throw std::runtime_error("CUDAImpl::launch_elemwise_binop_ip_broadcast: only RHS can broadcast for in-place op");
+    }
+  }
+
+
+  size_t* d_shape;
+  size_t* d_stride_a;
+  size_t* d_stride_b;
+  CUDA_CHECK(cudaMalloc(&d_shape, ndim * sizeof(size_t)));
+  CUDA_CHECK(cudaMalloc(&d_stride_a, ndim * sizeof(size_t)));
+  CUDA_CHECK(cudaMalloc(&d_stride_b, ndim * sizeof(size_t)));
+
+  CUDA_CHECK(cudaMemcpy(d_shape, a_shape.dims.data(), ndim * sizeof(size_t), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_stride_a, a_shape.strides.data(), ndim * sizeof(size_t), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_stride_b, b_shape.strides.data(), ndim * sizeof(size_t), cudaMemcpyHostToDevice));
+
   size_t BLOCK_SIZE = 256;
   size_t GRID_SIZE = CEIL_DIV(N, BLOCK_SIZE);
-  elemwise_binop_kernel_ip<<<GRID_SIZE, BLOCK_SIZE>>>(a, b, N, op);
+  elemwise_binop_ip_broadcast<<<GRID_SIZE, BLOCK_SIZE>>>(a, b, d_shape, d_stride_a, d_stride_b, ndim, N, op);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
-}
 
-template <typename BinOp>
-__global__ void elemwise_binop_kernel(float* a, float* b, float* c, size_t N, BinOp op) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < N) {
-    c[idx] = op(a[idx], b[idx]);
-  }
-}
-
-template <typename BinOp>
-void launch_elemwise_binop(float* a, float* b, float* c, size_t N, BinOp op) {
-  size_t BLOCK_SIZE = 256;
-  size_t GRID_SIZE = CEIL_DIV(N, BLOCK_SIZE);
-  elemwise_binop_kernel<<<GRID_SIZE, BLOCK_SIZE>>>(a, b, c, N, op);
-  CUDA_CHECK(cudaGetLastError());
-  CUDA_CHECK(cudaDeviceSynchronize());
+  cudaFree(d_shape);
+  cudaFree(d_stride_a);
+  cudaFree(d_stride_b);
 }
 
 
@@ -63,19 +136,16 @@ void CUDAImpl::_apply(const Op& op) {
         case OpType::SCAL_ADD: {
             auto p = std::get<ScalParams>(op.params);
             launch_unary_op_inplace(_data, numel(), ScalAddCUDA(p.x));
-            // launch_elemwise_scalop(_data, p.x, numel(), AddCUOp{});
             break;
         }
         case OpType::SCAL_SUB: {
             auto p = std::get<ScalParams>(op.params);
             launch_unary_op_inplace(_data, numel(), ScalSubCUDA(p.x));
-            // launch_elemwise_scalop(_data, p.x, numel(), SubCUOp{});
             break;
         }
         case OpType::SCAL_MUL: {
             auto p = std::get<ScalParams>(op.params);
             launch_unary_op_inplace(_data, numel(), ScalMulCUDA(p.x));
-            // launch_elemwise_scalop(_data, p.x, numel(), MulCUOp{});
             break;
         }
         case OpType::SCAL_DIV: {
@@ -84,10 +154,8 @@ void CUDAImpl::_apply(const Op& op) {
               throw std::runtime_error("CUDAImpl::apply: SCAL_DIV dividing by zero");
             }
             launch_unary_op_inplace(_data, numel(), ScalDivCUDA(p.x));
-            // launch_elemwise_scalop(_data, p.x, numel(), DivCUOp{});
             break;
         }
-
         case OpType::EXP:
             launch_unary_op_inplace(_data, numel(), UnExpCUDA{});
             break;
@@ -101,29 +169,29 @@ void CUDAImpl::_apply(const Op& op) {
             launch_unary_op_inplace(_data, numel(), UnClampCUDA{p.lo, p.hi});
             break;
         }
-
         case OpType::BIN_ADD: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_ADD expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), BinAddCUDA{});
+            launch_elemwise_binop_ip_broadcast(_data, other->_data, *_shape, *other->shape(), numel(), BinAddCUDA{});
+            // launch_elemwise_binop_ip(_data, other->_data, numel(), BinAddCUDA{});
             break;
         }
         case OpType::BIN_SUB: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_SUB expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), BinSubCUDA{});
+            launch_elemwise_binop_ip_broadcast(_data, other->_data, *_shape, *other->shape(), numel(), BinSubCUDA{});
             break;
         }
         case OpType::BIN_MUL: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_MUL expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), BinMulCUDA{});
+            launch_elemwise_binop_ip_broadcast(_data, other->_data, *_shape, *other->shape(), numel(), BinMulCUDA{});
             break;
         }
         case OpType::BIN_DIV: {
             auto other = dynamic_cast<const CUDAImpl*>(op.other);
             if (!other) throw std::runtime_error("CUDAImpl::apply: BIN_DIV expected CUDAImpl");
-            launch_elemwise_binop_ip(_data, other->_data, numel(), BinDivCUDA{});
+            launch_elemwise_binop_ip_broadcast(_data, other->_data, *_shape, *other->shape(), numel(), BinDivCUDA{});
             break;
         }
 
